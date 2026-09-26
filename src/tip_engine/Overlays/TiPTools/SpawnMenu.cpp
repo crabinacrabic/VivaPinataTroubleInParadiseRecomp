@@ -1,6 +1,7 @@
 #include "SpawnMenu.h"
 #include "../SmartStyles.h"
 #include "../TiPWidgets.h"
+#include "src/tip_engine/Compat.h"
 #include "src/tip_engine/rex_macros.h"
 #include "src/tip_engine/Globals.h"
 #include "src/tip_engine/Log.h"
@@ -185,7 +186,7 @@ int spawn_supportPinataCreateGeneralEx_82575C30_Hook(int a1, int a2, int a3, int
     //a6 = 3.0f;
 
     // Get the guest address of the PPC function that called this hook
-    uint32_t callerAddr = rex::ppc::GetGuestCallerAddress();
+    uint32_t callerAddr = tip_compat::GetGuestCallerAddress();
 
     char callerHex[32];
     snprintf(callerHex, sizeof(callerHex), "0x%08X", callerAddr);

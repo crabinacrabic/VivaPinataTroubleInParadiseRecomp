@@ -3,6 +3,7 @@
 #include <rex/input/input_system.h>
 #include <rex/ui/immediate_drawer.h>
 #include <rex/ui/virtual_key.h>
+#include <rex/ui/window.h>
 #include "tip_engine/Input/TipMouseListener.h"
 #include "tip_engine/Input/TipRawMouse.h"
 
@@ -38,13 +39,8 @@ inline bool g_InRomanceMinigame = false;
 inline bool g_QuitConfirmActive = false;
 
 inline bool IsRetipGameInputActive() {
-    if (g_LockGameInput) {
-        return false;
-    }
-    if (g_input_system && g_input_system->input_mode() != rex::input::InputMode::kGame) {
-        return false;
-    }
-    return true;
+    // SDK 0.10 has no InputSystem input mode; g_LockGameInput follows the UI mode.
+    return !g_LockGameInput;
 }
 
 inline void SetRetipInputUiMode(bool ui_mode) {
@@ -63,8 +59,13 @@ inline void SetRetipInputUiMode(bool ui_mode) {
         return;
     }
 
-    g_input_system->SetInputMode(ui_mode ? rex::input::InputMode::kUIOnly : rex::input::InputMode::kGame);
-    g_input_system->SetShowMouseCursor(ui_mode);
+    // SDK 0.10 has no SetInputMode / SetShowMouseCursor: guest pad input is gated
+    // by the active callback set in RetipApp::OnPostSetup (reads g_RetipInputUiMode),
+    // and the cursor belongs to the window. Called from the UI thread (TiPTools draw).
+    if (auto* window = g_input_system->window()) {
+        window->SetCursorVisibility(ui_mode ? rex::ui::Window::CursorVisibility::kVisible
+                                            : rex::ui::Window::CursorVisibility::kHidden);
+    }
 }
 
 inline void FlushRetipMouseInput() {

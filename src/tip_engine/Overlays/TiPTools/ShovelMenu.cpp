@@ -1,4 +1,5 @@
 #include "ShovelMenu.h"
+#include "src/tip_engine/Compat.h"
 #include "src/tip_engine/rex_macros.h"
 #include "src/tip_engine/Types/VivaTags.h"
 #include <bit>
@@ -73,7 +74,7 @@ static int ScaleHitMeterDamage(int actor, int amount) {
 }
 
 int sub_82512AC0_Hook(int actor, int amount, int update) {
-    if (IsHitMeterCaller(rex::ppc::GetGuestCallerAddress())) {
+    if (IsHitMeterCaller(tip_compat::GetGuestCallerAddress())) {
         amount = ScaleHitMeterDamage(actor, amount);
     }
 

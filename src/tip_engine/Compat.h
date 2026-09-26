@@ -7,14 +7,17 @@
 //                               hook) work; texture/shader mods needed the fork's GPU
 //                               replacement layer and are inactive.
 //   <rex/ppc/guest_global.h> -> nothing: the only [globals] user reads the address directly.
+//   rex::ppc::GetGuestCallerAddress -> tip_compat::GetGuestCallerAddress (ctx.lr).
 //   SolarRenderer cvars      -> defined here, off (the renderer was part of the fork).
 #pragma once
 
+#include <cstdint>
 #include <filesystem>
 #include <string>
 #include <vector>
 
 #include <rex/cvar.h>
+#include <rex/system/thread_state.h>
 
 REXCVAR_DECLARE(std::string, mods_data_root);
 REXCVAR_DECLARE(std::string, enabled_mods);
@@ -25,6 +28,14 @@ namespace tip_compat
   // Folders mods/<name> for every name in the comma-separated `enabled_mods`
   // cvar that exists under `mods_root`, in the listed order.
   std::vector<std::filesystem::path> GetEnabledModDirs(const std::filesystem::path &mods_root);
+
+  // Guest return address of the recompiled call being hooked. Generated code
+  // sets ctx.lr before every `bl`, and hooks run on the caller's thread context,
+  // so at hook entry lr is the caller's next instruction.
+  inline uint32_t GetGuestCallerAddress()
+  {
+    return static_cast<uint32_t>(rex::runtime::current_ppc_context()->lr);
+  }
 
   namespace discord_rpc
   {

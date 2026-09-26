@@ -34,6 +34,9 @@ execute_process(
 # generated/rexglue.cmake uses REXSDK_VERSION as an optional EXACT pin; clear it
 # so find_package accepts any 0.10.x found on CMAKE_PREFIX_PATH.
 set(REXSDK_VERSION "")
+# Find the fetched SDK with any preset, not only the local-* ones from
+# CMakeUserPresets.json (Visual Studio configures the first preset on open).
+list(PREPEND CMAKE_PREFIX_PATH "${CMAKE_CURRENT_SOURCE_DIR}/rexglue/${REXSDK_PLATFORM}")
 
 # --- First configure on a fresh clone: run codegen once ----------------------
 # generated/default/sources.cmake only exists after `rexglue codegen`. Without
