@@ -3,6 +3,7 @@ mods_data_root = "./mods/"
 enabled_mods = "WaterFix,CustomProfileTag,PureTagColors,BorderlessTag,DitherFix,IceShader"
 default_mods = "WaterFix,CustomProfileTag,PureTagColors,BorderlessTag,DitherFix,IceShader"
 present_letterbox = false
+fullscreen = false
 video_mode_refresh_rate = 164.000000
 audio_replace_enabled = true
 mnk_mode = true
