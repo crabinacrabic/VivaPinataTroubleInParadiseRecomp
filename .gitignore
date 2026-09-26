@@ -63,3 +63,6 @@ assets/*
 *.7z
 # Python bytecode
 __pycache__/
+# translation work files: game text + third-party (ZoG) text, never commit
+translation/work/
+translation/check_report.txt
