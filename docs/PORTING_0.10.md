@@ -23,7 +23,7 @@
 | Диск (Redump) | `Viva Pinata - Trouble in Paradise (World).iso`, MD5 `aad50e5418e22e8a9b92d2c0c258079e` (совпадает с Redump) |
 | Title ID / Media ID | `4D53085F` / `76A44A5D` |
 | XEX | версия `0.0.0.4`, образ с `0x82000000`, точка входа `0x82B0AEA8`, SHA-1 `c5970941…6b8b` |
-| Где лежит | `assets/` (5,0 ГБ, распаковано), ISO — в `C:\Recompiles\VivaPinata_TiP_ISO_Backup\` |
+| Где лежит | `assets/` (5,0 ГБ, распаковано), ISO — в `C:\Recompiles\VivaPinata_TroubleInParadise_ISO_Backup\` |
 
 ## 3. Что сделано в этом коммите (первый проход)
 
@@ -51,7 +51,7 @@
 
 ## 5. Как запустить
 
-1. Visual Studio 2026 → **Файл → Открыть → Папка…** → `C:\Recompiles\VivaPinata_TiP_xbox360`.
+1. Visual Studio 2026 → **Файл → Открыть → Папка…** → `C:\Recompiles\VivaPinata_TroubleInParadise_xbox360`.
 2. Дождаться конца генерации CMake. В первый раз запустится codegen по `assets/default.xex`, это несколько минут.
 3. Выбрать конфигурацию **`local-win-relwithdebinfo`**, нажать **F7**.
 4. Перед первым **F5**: Отладка → Параметры исключений → Win32 Exceptions → снять галку `0xC0000005` (это не падения, а защита памяти GPU в SDK).
