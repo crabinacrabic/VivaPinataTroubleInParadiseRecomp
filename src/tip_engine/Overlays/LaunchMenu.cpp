@@ -32,7 +32,6 @@ REXCVAR_DECLARE(bool, SkipIntros);
 REXCVAR_DECLARE(bool, UseAspectRatioFromConfig);
 REXCVAR_DECLARE(double, AspectRatio);
 REXCVAR_DECLARE(bool, fullscreen);
-REXCVAR_DECLARE(bool, DiscordActivity);
 REXCVAR_DECLARE(bool, show_fps);
 REXCVAR_DECLARE(bool, lock_fps);
 
@@ -92,15 +91,12 @@ static int DetectQualityPreset() {
     return 3;
 }
 
-static constexpr const char* kDiscordUrl = "https://discord.gg/CNTxwSNZfT";
-static constexpr const char* kGithubUrl  = "https://github.com/rexglue/rexglue-sdk";
 static constexpr const char* kGoopieUrl  = "https://goopie.xyz/#/library";
 
 static constexpr float kPad = 24.0f;
 static constexpr float kBarHeight = 116.0f;
 static constexpr float kWallpaperVerticalShift = 160.0f;
 static constexpr float kBtnHeight = 46.0f;
-static constexpr float kBtnGap = 10.0f;
 static constexpr float kRowBottomPad = 22.0f;
 static constexpr float kCheckboxGap = 10.0f;
 
@@ -257,25 +253,17 @@ void LaunchMenuDialog::OnDraw(ImGuiIO& io) {
     ImGui::SetCursorPos(ImVec2(kPad, barTop + 20.0f));
     ImGui::SetWindowFontScale(2.0f);
     ImGui::TextUnformatted("ReTiP");
-    float titleWidth = ImGui::CalcTextSize("ReTiP").x * 2.0f;
     ImGui::SetWindowFontScale(1.0f);
     ImGui::SetCursorPos(ImVec2(kPad + 2.0f, barTop + 58.0f));
     ImGui::TextDisabled("Version %s", retipversion.c_str());
 
     float rowY = disp.y - kRowBottomPad - kBtnHeight;
 
-    const ImVec2 btnSize(120.0f, kBtnHeight);
-    const float kGroupGap = 30.0f;
     const float kOptionsGap = 16.0f;
-    float rowWidth = btnSize.x * 2.0f + kBtnGap;
     const ImVec2 playSize(gameInstalled_ ? 170.0f : 260.0f, kBtnHeight);
     const ImVec2 optionsSize(170.0f, kBtnHeight);
     float playX = disp.x - kPad - playSize.x;
     float optionsX = playX - kOptionsGap - optionsSize.x;
-
-    float rowX = (disp.x - rowWidth) * 0.5f;
-    rowX = std::max(rowX, kPad + titleWidth + kBtnGap * 2.0f);
-    rowX = std::min(rowX, optionsX - kGroupGap - rowWidth);
 
     ImGui::SetCursorPos(ImVec2(playX, rowY));
     ImGui::SetWindowFontScale(gameInstalled_ ? 1.15f : 1.0f);
@@ -299,11 +287,6 @@ void LaunchMenuDialog::OnDraw(ImGuiIO& io) {
             REXCVAR_SET(ShowLaunchMenu, showOnStartup);
         }
     }
-
-    ImGui::SetCursorPos(ImVec2(rowX, rowY));
-    if (BrandButton("Discord", ImVec4(0.33f, 0.39f, 0.90f, 1.0f), btnSize)) SDL_OpenURL(kDiscordUrl);
-    ImGui::SameLine(0.0f, kBtnGap);
-    if (BrandButton("GitHub", ImVec4(0.25f, 0.28f, 0.33f, 1.0f), btnSize)) SDL_OpenURL(kGithubUrl);
 
     ImGui::End();
 
@@ -375,7 +358,6 @@ void LaunchMenuDialog::DrawOptionsWindow(ImGuiIO& io) {
                 rex::cvar::SetFlagByName("fullscreen", fs ? "true" : "false");
             }
         }
-        CVAR_CHECKBOX("Discord Activity", DiscordActivity);
         CVAR_CHECKBOX("Show FPS", show_fps);
         CVAR_CHECKBOX("Lock FPS", lock_fps);
         CVAR_CHECKBOX("Skip Intros", SkipIntros);
