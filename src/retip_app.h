@@ -64,6 +64,16 @@ class RetipApp : public rex::ReXApp {
 
     g_input_system = static_cast<rex::input::InputSystem*>(runtime()->input_system());
 
+    // Replaces the fork's InputMode::kUIOnly: no guest pad input while a retip
+    // menu owns the UI (SetRetipInputUiMode). Keeps the SDK's default checks.
+    if (g_input_system) {
+      g_input_system->SetActiveCallback([this]() {
+        if (g_RetipInputUiMode) return false;
+        if (window() && !window()->HasFocus()) return false;
+        return !imgui_drawer() || !imgui_drawer()->GetIO().WantCaptureMouse;
+      });
+    }
+
     auto* w = window();
     if (!w) return;
     auto listener = std::make_unique<TipMouseListener>(w);
