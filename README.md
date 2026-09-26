@@ -1,40 +1,40 @@
-# Viva Piñata: Trouble in Paradise - PC Recompilation
+# Viva Piñata: Trouble in Paradise — ПК-рекомпиляция
 
-A native PC recompilation of **Viva Piñata: Trouble in Paradise** (Xbox 360, 2008), powered by the **ReXGlue SDK** (v0.10).
-
----
-
-## Overview
-
-This project statically recompiles the original Xbox 360 PowerPC binary into native x86-64 code, running natively on Windows without traditional full-system emulation overhead.
-
-### Key Features
-- **DirectX 12 Backend**: Native hardware rendering on modern GPUs.
-- **Configurable Framerate**: Support for high refresh rates as well as authentic 30/60 FPS frame locks to preserve original game physics and mini-games.
-- **Mouse & Keyboard Support**: Full desktop navigation and cursor controls.
-- **Custom Aspect Ratios & Resolutions**: Support for ultrawide and arbitrary display aspect ratios.
-- **Integrated Mod Loading**: Support for community shaders, texture packs, and data modifications.
+Нативная статическая рекомпиляция игры **Viva Piñata: Trouble in Paradise** (Xbox 360, 2008) для ПК на базе **ReXGlue SDK** (версия 0.10).
 
 ---
 
-## Requirements
+## Обзор проекта
 
-### System Requirements
-- **OS**: Windows 10 / 11 (64-bit)
-- **Processor**: Modern 4-core x86-64 CPU (Intel Core i5 / AMD Ryzen 3 or better)
-- **RAM**: 8 GB RAM minimum (16 GB recommended)
-- **Graphics**: DirectX 12 compatible GPU (Nvidia GeForce GTX 1060 / AMD Radeon RX 580 or newer)
-- **Storage**: ~15 GB available space
+Проект выполняет статическую рекомпиляцию оригинального бинарного файла PowerPC (Xbox 360) в нативный машинный код x86-64, позволяя запускать игру напрямую на Windows без накладных расходов традиционной полной эмуляции системы.
 
-### Game Assets
-This repository contains only the recompilation source code and tooling. You must provide your own legally dumped retail disc copy of *Viva Piñata: Trouble in Paradise* (Xbox 360).
+### Основные возможности
+- **Графический бэкенд DirectX 12**: Нативный аппаратный рендеринг на современных видеокартах.
+- **Настраиваемая частота кадров**: Поддержка высокой частоты обновления монитора, а также аутентичные лимиты 30/60 FPS для сохранения оригинальной физики и мини-игр.
+- **Управление клавиатурой и мышью**: Полноценная навигация и поддержка курсора мыши.
+- **Поддержка нестандартных разрешений и соотношений сторон**: Поддержка широкоформатных и ультрашироких (Ultrawide) мониторов.
+- **Встроенная поддержка модов**: Загрузка пользовательских шейдеров, текстур-паков и модификаций игровых данных.
 
 ---
 
-## Setup & Building
+## Системные требования
 
-### 1. Extract Game Assets
-Extract your game disc (`default.xex` and the `Beta` folder) directly into the `assets/` directory:
+### Аппаратные требования
+- **ОС**: Windows 10 / 11 (64-битная)
+- **Процессор**: Современный 4-ядерный x86-64 процессор (Intel Core i5 / AMD Ryzen 3 или лучше)
+- **Оперативная память**: 8 ГБ минимум (рекомендуется 16 ГБ)
+- **Видеокарта**: С поддержкой DirectX 12 (Nvidia GeForce GTX 1060 / AMD Radeon RX 580 или новее)
+- **Место на диске**: ~15 ГБ свободного пространства
+
+### Игровые ресурсы
+Этот репозиторий содержит исключительно исходный код рекомпиляции и инструменты. Для игры необходим собственный легальный дамп розничного диска *Viva Piñata: Trouble in Paradise* (Xbox 360).
+
+---
+
+## Установка и сборка
+
+### 1. Распаковка ресурсов игры
+Распакуйте файлы с вашего диска игры (`default.xex` и каталог `Beta`) прямо в папку `assets/`:
 
 ```text
 VivaPinataTroubleInParadiseRecomp/
@@ -47,26 +47,26 @@ VivaPinataTroubleInParadiseRecomp/
 └── CMakeLists.txt
 ```
 
-### 2. Build with Visual Studio
-1. Open Visual Studio.
-2. Select **File -> Open -> Folder...** and choose the root directory of this repository.
-3. Allow CMake generation to finish (on first configure, codegen will run against `assets/default.xex`).
-4. Select the preset **`local-win-relwithdebinfo`** (or `local-win-release`).
-5. Press **F7** to build `retip.exe`.
+### 2. Сборка через Visual Studio
+1. Откройте Visual Studio.
+2. Выберите **Файл -> Открыть -> Папка...** и укажите корневой каталог этого репозитория.
+3. Дождитесь завершения генерации CMake (при первой настройке автоматически запустится кодогенерация по файлу `assets/default.xex`).
+4. Выберите пресет конфигурации **`local-win-relwithdebinfo`** (или `local-win-release`).
+5. Нажмите клавишу **F7** для сборки исполняемого файла `retip.exe`.
 
-### 3. Launching
-- Press **F5** in Visual Studio or run `retip.exe` directly from the build output directory.
-- Use **F4** in-game to access graphics and overlay options.
-
----
-
-## Credits & Acknowledgments
-- **Rare Ltd. & Microsoft Game Studios**: Creators of *Viva Piñata*.
-- **ReXGlue Project**: Static recompilation framework and runtime.
-- **Project Xenia**: Groundbreaking Xbox 360 emulation research and shader pipelines.
-- **Community Contributors**: Patches, fixes, and reverse-engineering contributions.
+### 3. Запуск игры
+- Нажмите **F5** в Visual Studio или запустите `retip.exe` из папки с результатами сборки.
+- В самой игре нажмите клавишу **F4**, чтобы открыть оверлей параметров графики и модов.
 
 ---
 
-## Disclaimer
-This project is an unofficial fan recompilation created for preservation and educational purposes. It is not affiliated with, endorsed by, or sponsored by Microsoft, Xbox, or Rare Ltd. No copyrighted game assets or proprietary code are distributed within this repository.
+## Благодарности
+- **Rare Ltd. и Microsoft Game Studios**: Создатели оригинальной игры *Viva Piñata*.
+- **Команда ReXGlue**: Фреймворк и среда выполнения статической рекомпиляции.
+- **Проект Xenia**: Фундаментальные исследования архитектуры Xbox 360 и шейдерного конвейера.
+- **Сообщество энтузиастов**: Исправления ошибок, обратная разработка и улучшения удобства игры.
+
+---
+
+## Отказ от ответственности
+Этот проект является неофициальной фанатской рекомпиляцией, созданной в целях сохранения игрового наследия и исследований. Проект никак не связан, не поддерживается и не спонсируется компаниями Microsoft, Xbox или Rare Ltd. В репозитории не распространяются защищённые авторским правом ресурсы игры или проприетарный код.
