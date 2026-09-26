@@ -91,8 +91,6 @@ static int DetectQualityPreset() {
     return 3;
 }
 
-static constexpr const char* kGoopieUrl  = "https://goopie.xyz/#/library";
-
 static constexpr float kPad = 24.0f;
 static constexpr float kBarHeight = 116.0f;
 static constexpr float kWallpaperVerticalShift = 160.0f;
@@ -260,15 +258,16 @@ void LaunchMenuDialog::OnDraw(ImGuiIO& io) {
     float rowY = disp.y - kRowBottomPad - kBtnHeight;
 
     const float kOptionsGap = 16.0f;
-    const ImVec2 playSize(gameInstalled_ ? 170.0f : 260.0f, kBtnHeight);
+    const ImVec2 playSize(170.0f, kBtnHeight);
     const ImVec2 optionsSize(170.0f, kBtnHeight);
     float playX = disp.x - kPad - playSize.x;
     float optionsX = playX - kOptionsGap - optionsSize.x;
 
     ImGui::SetCursorPos(ImVec2(playX, rowY));
-    ImGui::SetWindowFontScale(gameInstalled_ ? 1.15f : 1.0f);
-    ImVec4 playColor = gameInstalled_ ? ImVec4(0.0f, 0.62f, 0.36f, 1.0f) : ImVec4(0.85f, 0.55f, 0.0f, 1.0f);
-    bool play = BrandButton(gameInstalled_ ? "PLAY" : "Install with Goopie", playColor, playSize);
+    ImGui::SetWindowFontScale(1.15f);
+    ImGui::BeginDisabled(!gameInstalled_);
+    bool play = BrandButton("PLAY", ImVec4(0.0f, 0.62f, 0.36f, 1.0f), playSize);
+    ImGui::EndDisabled();
     ImGui::SetWindowFontScale(1.0f);
 
     ImGui::SetCursorPos(ImVec2(optionsX, rowY));
@@ -280,24 +279,25 @@ void LaunchMenuDialog::OnDraw(ImGuiIO& io) {
     }
     ImGui::SetWindowFontScale(1.0f);
 
+    float checkboxY = rowY - ImGui::GetFrameHeightWithSpacing() - kCheckboxGap;
     if (gameInstalled_) {
-        float checkboxY = rowY - ImGui::GetFrameHeightWithSpacing() - kCheckboxGap;
         ImGui::SetCursorPos(ImVec2(playX, checkboxY));
         if (ImGui::Checkbox("Show this launcher on startup", &showOnStartup)) {
             REXCVAR_SET(ShowLaunchMenu, showOnStartup);
         }
+    } else {
+        static constexpr const char* kMissing =
+            "Game files not found: unpack your disc into assets/ (see assets/README.md)";
+        ImGui::SetCursorPos(ImVec2(disp.x - kPad - ImGui::CalcTextSize(kMissing).x, checkboxY));
+        ImGui::TextColored(ImVec4(1.0f, 0.75f, 0.2f, 1.0f), "%s", kMissing);
     }
 
     ImGui::End();
 
     DrawOptionsWindow(io);
 
-    if (play || (gameInstalled_ && ImGui::IsKeyPressed(ImGuiKey_Enter))) {
-        if (gameInstalled_) {
-            StartGame();
-        } else {
-            SDL_OpenURL(kGoopieUrl);
-        }
+    if (gameInstalled_ && (play || ImGui::IsKeyPressed(ImGuiKey_Enter))) {
+        StartGame();
     }
 }
 
