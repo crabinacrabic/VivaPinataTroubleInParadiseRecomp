@@ -1,0 +1,5 @@
+manifest_version = 1
+name = "Custom Profile Tag"
+description =  "Adds a custom picture to the tag editor."
+version = "1.0.0"
+author = "Community"

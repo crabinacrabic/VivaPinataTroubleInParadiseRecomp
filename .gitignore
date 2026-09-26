@@ -24,7 +24,7 @@ assets/default.xex_20260315230351.i64
 assets/default.xex_functions.csv
 out/build/win-amd64-relwithdebinfo/retip.pdb
 /Shaders
-TiP-Recomp.code-workspace
+*.code-workspace
 retip.exe
 retip.pdb
 rexglue.exe

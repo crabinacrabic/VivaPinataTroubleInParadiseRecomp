@@ -1,8 +1,6 @@
-// Compat.h - stand-ins for APIs of the SolarRecomps ReXGlue fork (0.8.1,
-// "rexglue-ostentation") that upstream ReXGlue SDK 0.10 does not have.
+// Compat.h - stand-ins for extended ReXGlue APIs that upstream ReXGlue SDK 0.10 does not have.
 //
-// The fork's repository is no longer reachable, so the project builds against
-// upstream 0.10. What each piece replaces:
+// What each piece replaces:
 //   <rex/discord_rpc.h>      -> tip_compat::discord_rpc (no-op; no Discord in 0.10)
 //   <rex/mods.h>             -> tip_compat::GetEnabledModDirs + mods_* cvars. Data mods
 //                               (mods/<name>/data/*.vdat, injected by the assetManOpen

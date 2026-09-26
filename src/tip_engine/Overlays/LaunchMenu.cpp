@@ -92,10 +92,8 @@ static int DetectQualityPreset() {
     return 3;
 }
 
-static constexpr const char* kDiscordUrl = "https://discord.gg/39AtUkYr7s";
-static constexpr const char* kPatreonUrl = "https://www.patreon.com/cw/SolarCookies";
-static constexpr const char* kKofiUrl    = "https://ko-fi.com/solarcookies";
-static constexpr const char* kGithubUrl  = "https://github.com/SolarCookies/TiP-Recomp";
+static constexpr const char* kDiscordUrl = "https://discord.gg/CNTxwSNZfT";
+static constexpr const char* kGithubUrl  = "https://github.com/rexglue/rexglue-sdk";
 static constexpr const char* kGoopieUrl  = "https://goopie.xyz/#/library";
 
 static constexpr float kPad = 24.0f;
@@ -269,7 +267,7 @@ void LaunchMenuDialog::OnDraw(ImGuiIO& io) {
     const ImVec2 btnSize(120.0f, kBtnHeight);
     const float kGroupGap = 30.0f;
     const float kOptionsGap = 16.0f;
-    float rowWidth = btnSize.x * 4.0f + kBtnGap * 3.0f;
+    float rowWidth = btnSize.x * 2.0f + kBtnGap;
     const ImVec2 playSize(gameInstalled_ ? 170.0f : 260.0f, kBtnHeight);
     const ImVec2 optionsSize(170.0f, kBtnHeight);
     float playX = disp.x - kPad - playSize.x;
@@ -303,11 +301,7 @@ void LaunchMenuDialog::OnDraw(ImGuiIO& io) {
     }
 
     ImGui::SetCursorPos(ImVec2(rowX, rowY));
-    if (BrandButton("Patreon", ImVec4(0.90f, 0.27f, 0.25f, 1.0f), btnSize)) SDL_OpenURL(kPatreonUrl);
-    ImGui::SameLine(0.0f, kBtnGap);
     if (BrandButton("Discord", ImVec4(0.33f, 0.39f, 0.90f, 1.0f), btnSize)) SDL_OpenURL(kDiscordUrl);
-    ImGui::SameLine(0.0f, kBtnGap);
-    if (BrandButton("Ko-fi", ImVec4(0.95f, 0.35f, 0.45f, 1.0f), btnSize)) SDL_OpenURL(kKofiUrl);
     ImGui::SameLine(0.0f, kBtnGap);
     if (BrandButton("GitHub", ImVec4(0.25f, 0.28f, 0.33f, 1.0f), btnSize)) SDL_OpenURL(kGithubUrl);
 

@@ -1,7 +1,6 @@
 # retip - Viva Pinata: Trouble in Paradise (Xbox 360), ReXGlue recompilation
 #
-# Ported from the SolarRecomps SDK fork (0.8.1, "rexglue-ostentation") to
-# upstream ReXGlue SDK 0.10.0.8-dev.g1406e1b. SDK boilerplate lives in
+# Configured for upstream ReXGlue SDK 0.10.0.8-dev.g1406e1b. SDK boilerplate lives in
 # generated/rexglue.cmake (from `rexglue init`, 0.10).
 
 cmake_minimum_required(VERSION 3.25)
