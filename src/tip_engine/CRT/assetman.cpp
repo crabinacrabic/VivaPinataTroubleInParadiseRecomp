@@ -1,7 +1,7 @@
 #include "crt.h"
 
 #include <rex/filesystem.h>
-#include <rex/mods.h>
+#include "tip_engine/Compat.h"  // 0.10: replaces the fork's <rex/mods.h>
 #include "../Log.h"
 
 
@@ -23,7 +23,7 @@ static const std::vector<std::filesystem::path>& GetDataModDirs() {
         std::filesystem::path modsDataRoot = REXCVAR_GET(mods_data_root);
         if (modsDataRoot.empty()) { modsDataRoot = rex::filesystem::GetExecutableFolder() / "mods"; }
         std::vector<std::filesystem::path> result;
-        for (const auto& modDir : rex::GetEnabledModDirs(modsDataRoot)) {
+        for (const auto& modDir : tip_compat::GetEnabledModDirs(modsDataRoot)) {
             result.push_back(modDir / "data");
         }
         return result;

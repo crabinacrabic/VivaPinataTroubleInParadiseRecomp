@@ -44,8 +44,22 @@ build_log.txt
 *.log1
 ReShade.ini
 
-/generated
+# codegen output (rebuilt by the build); only the SDK glue is tracked
+generated/*
+!generated/rexglue.cmake
 /textures
 /dumps
 /assets/B13EBABEBABEBABE
 /src/tip_engine/Shaders
+
+# ReXGlue SDK 0.10 prebuilt, fetched by cmake/fetch-rexglue-sdk.cmake
+rexglue/*
+!rexglue/README.md
+# game files unpacked from the user's own disc image (never commit)
+assets/*
+!assets/README.md
+# disc images / archives
+*.iso
+*.7z
+# Python bytecode
+__pycache__/

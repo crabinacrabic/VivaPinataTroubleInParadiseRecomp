@@ -1,6 +1,7 @@
 #pragma once
 #include <memory>
 #include <rex/input/input_system.h>
+#include <rex/ui/immediate_drawer.h>
 #include <rex/ui/virtual_key.h>
 #include "tip_engine/Input/TipMouseListener.h"
 #include "tip_engine/Input/TipRawMouse.h"
@@ -26,6 +27,9 @@ inline std::unique_ptr<TipMouseListener> g_mouse_listener = nullptr;
 inline std::unique_ptr<TipRawMouse> g_raw_mouse = nullptr;
 
 inline rex::input::InputSystem* g_input_system = nullptr;
+
+// ReXApp::immediate_drawer(), for dialogs that create textures (SDK 0.10).
+inline rex::ui::ImmediateDrawer* g_immediate_drawer = nullptr;
 
 inline bool g_LockGameInput = false;
 inline bool g_RetipInputUiMode = false;

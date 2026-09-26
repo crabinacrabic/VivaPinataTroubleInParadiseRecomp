@@ -28,9 +28,9 @@
 #include <rex/input/input_system.h>
 #include <rex/ui/virtual_key.h>
 #include "Globals.h"
-#include "../../generated/default/retip_globals.h"
-#include <rex/discord_rpc.h>
-#include <rex/ppc/guest_global.h>
+// 0.10: the fork generated retip_globals.h from [globals] and had discord_rpc /
+// guest_global headers; see tip_engine/Compat.h.
+#include "tip_engine/Compat.h"
 
 REXCVAR_DEFINE_BOOL(lock_fps, false, "TiP/Fps", "Lock to 30 FPS");
 REXCVAR_DEFINE_BOOL(show_fps, false, "TiP/Fps", "Show FPS Overlay");
@@ -133,7 +133,7 @@ REX_HOOK_RAW(rex_gardenMainGetGardenScene_824E1120) {
       }else if(sceneNameView.find("aid_script_pinata_game_credits") != std::string_view::npos) {
         ActualSceneName = "Credits";
       }
-      rex::discord_rpc::SetDetails(std::string("In ") + ActualSceneName);
+      tip_compat::discord_rpc::SetDetails(std::string("In ") + ActualSceneName);
     }
 
     if (g_SpawnRequest.pending){

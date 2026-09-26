@@ -137,7 +137,7 @@ void LaunchMenuDialog::EnsureWallpaper() {
         }
     }
 
-    auto* immediate = imgui_drawer()->immediate_drawer();
+    auto* immediate = g_immediate_drawer;  // SDK 0.10: set by RetipApp::OnCreateDialogs
     if (!immediate) return;
     wallpaper_ = immediate->CreateTexture(wallpaperW_, wallpaperH_, rex::ui::ImmediateTextureFilter::kLinear, false, wallpaperPixels_.data());
     if (wallpaper_) {

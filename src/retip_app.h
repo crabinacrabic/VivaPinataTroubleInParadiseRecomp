@@ -16,7 +16,7 @@
 #pragma comment(lib, "winmm.lib")
 #endif
 #include "tip_engine/Globals.h"
-#include <rex/discord_rpc.h>
+#include "tip_engine/Compat.h"  // 0.10: discord_rpc stand-in
 #include <rex/filesystem.h>
 
 #include "tip_engine/hooks.h"
@@ -44,14 +44,14 @@ class RetipApp : public rex::ReXApp {
   }
 
   void OnPostSetup() override {
-    rex::discord_rpc::Presence rpc;
+    tip_compat::discord_rpc::Presence rpc;
 
     rpc.details_ = "";
     rpc.state_ = "";
     rpc.large_image_key_ = "10979_viva_piata_trouble_in_paradise";
     rpc.large_image_text_ = "ReTiP";
 
-    rex::discord_rpc::Start("1497091207132876860", rpc);
+    tip_compat::discord_rpc::Start("1497091207132876860", rpc);
 
     //optimization tom suggested
     timeBeginPeriod(1);
@@ -80,17 +80,18 @@ class RetipApp : public rex::ReXApp {
   }
 
   void OnCreateDialogs(rex::ui::ImGuiDrawer* drawer) override {
+    // SDK 0.10: ImGuiDialog registers itself in its constructor (no AddDialog),
+    // and the immediate drawer is owned by ReXApp, not reachable from ImGuiDrawer.
+    g_immediate_drawer = immediate_drawer();
 
     fps_dialog_ = std::make_unique<FpsOverlayDialog>(drawer);
     fps_dialog_->fpsManager = &fpsManager;
-    drawer->AddDialog(fps_dialog_.get());
 
-    gameInstalled_ = !game_data_root().empty() && std::filesystem::exists(game_data_root() / "default.xex");
+    // gameInstalled_ is set in OnConfigurePaths: in SDK 0.10 game_data_root()
+    // is only filled in ConstructRuntime, after the dialogs are created.
     launch_dialog_ = std::make_unique<LaunchMenuDialog>(drawer, window(), "retip.toml", gameInstalled_);
-    drawer->AddDialog(launch_dialog_.get());
 
     quit_dialog_ = std::make_unique<QuitMenuDialog>(drawer, window());
-    drawer->AddDialog(quit_dialog_.get());
 
     tools_dialog_ = std::make_unique<TipToolsDialog>(drawer, "retip.toml");
     tools_dialog_->pages.push_back(std::make_unique<SpawnMenuPage>());
@@ -102,7 +103,6 @@ class RetipApp : public rex::ReXApp {
     tools_dialog_->pages.push_back(std::make_unique<GraphicsMenuPage>());
     tools_dialog_->pages.push_back(std::make_unique<UpscalingMenuPage>());
     tools_dialog_->pages.push_back(std::make_unique<SettingsMenuPage>());
-    drawer->AddDialog(tools_dialog_.get());
   }
 
   void LaunchModule() override {
@@ -133,17 +133,25 @@ class RetipApp : public rex::ReXApp {
 
   void OnConfigurePaths(rex::PathConfig &paths) override {
     if (paths.game_data_root.empty()) {
-      wchar_t exe_path[MAX_PATH] = {};
-      GetModuleFileNameW(nullptr, exe_path, MAX_PATH);
-      auto exe_dir = std::filesystem::path(exe_path).parent_path();
-      auto assets_next_to_exe = exe_dir / "assets";
-      auto assets_in_build = std::filesystem::current_path() / "../../../assets"; // TiP-Recomp/assets/ TiP-Recomp/out/build/win-amd64-relwithdebinfo/retip.exe
-      if (std::filesystem::exists(assets_next_to_exe)) {
-        paths.game_data_root = assets_next_to_exe;
-      } else if (std::filesystem::exists(assets_in_build)) {
-        paths.game_data_root = assets_in_build;
+      // assets/ next to the exe (release zip), or in the repository root when
+      // running from out/build/<preset>/: walk up from the exe folder, so it
+      // does not depend on the working directory.
+      std::filesystem::path dir = rex::filesystem::GetExecutableFolder();
+      for (int i = 0; i < 6 && !dir.empty(); ++i) {
+        if (std::filesystem::exists(dir / "assets" / "default.xex")) {
+          paths.game_data_root = dir / "assets";
+          break;
+        }
+        if (!dir.has_parent_path() || dir.parent_path() == dir) {
+          break;
+        }
+        dir = dir.parent_path();
       }
     }
+    // SDK 0.10: OnConfigurePaths runs before OnCreateDialogs, game_data_root()
+    // only after ConstructRuntime - decide here whether the game is present.
+    gameInstalled_ = !paths.game_data_root.empty() &&
+                     std::filesystem::exists(paths.game_data_root / "default.xex");
   }
 
  private:
