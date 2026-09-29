@@ -18,7 +18,7 @@ Subcommands
            7-Zip). The launcher installs it over englishus.bnl.
 
 Text format (same Rare CAFF container as Viva Pinata 1, see
-tools/make_russian_bnl.py): the third zlib stream holds LBSL blocks, each an
+tools/make_russian_bnl.py in Viva Pinata Recomp): the third zlib stream holds LBSL blocks, each an
 entry table {u16 hash, u32 offset in UTF-16 chars} and big-endian UTF-16
 strings. english.bnl and englishus.bnl share one layout (same blocks, same
 hashes); the game reads englishus.bnl.

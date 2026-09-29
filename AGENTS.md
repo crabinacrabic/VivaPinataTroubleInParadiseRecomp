@@ -167,7 +167,6 @@ src/tip_engine/Overlays/     launcher (LaunchMenu), quit menu, FPS, ReTiP tools 
 packaged/                    retip.toml defaults, mods/, launcher wallpaper; staged next to retip.exe
 tools/tip_text.py            game text: extract / check / build (russian.bnl)
 tools/validate_manifest.py   manifest pre-flight check
-tools/make_russian_bnl.py    Viva Pinata 1's ZoG script, kept for reference (not used for TiP)
 translation/GEMINI_BRIEF.md  translator brief; translation/work/ is gitignored
 docs/PORTING_0.10.md         port from the original SDK fork to ReXGlue SDK 0.10
 docs/images/                 README icon and screenshots
