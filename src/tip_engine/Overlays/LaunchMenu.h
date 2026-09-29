@@ -13,7 +13,7 @@ REXCVAR_DECLARE(bool, ShowLaunchMenu);
 
 class LaunchMenuDialog : public rex::ui::ImGuiDialog {
 public:
-    LaunchMenuDialog(rex::ui::ImGuiDrawer* drawer, rex::ui::Window* window, std::filesystem::path configPath, bool gameInstalled) : rex::ui::ImGuiDialog(drawer), window_(window), configPath_(std::move(configPath)), gameInstalled_(gameInstalled) {}
+    LaunchMenuDialog(rex::ui::ImGuiDrawer* drawer, rex::ui::Window* window, std::filesystem::path configPath, bool gameInstalled, std::filesystem::path gameRoot) : rex::ui::ImGuiDialog(drawer), window_(window), configPath_(std::move(configPath)), gameInstalled_(gameInstalled), gameRoot_(std::move(gameRoot)) {}
 
     static bool WillShowOnStartup();
 
@@ -51,4 +51,6 @@ private:
     std::filesystem::path configPath_;
     std::function<void()> onClosed_;
     bool gameInstalled_ = true;
+    std::filesystem::path gameRoot_;
+    bool russianAvailable_ = false;
 };

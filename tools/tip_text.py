@@ -12,6 +12,10 @@ Subcommands
            leading/trailing whitespace, characters of the game font, and the
            per-block length budget (see below). Writes
            translation/check_report.txt. Exit 0 = no errors.
+  build    Runs the checks, then writes assets/Beta/bundles/russian.bnl: the
+           englishus.bnl text stream with every block re-laid out around the
+           Russian strings, recompressed to its exact original size (needs
+           7-Zip). The launcher installs it over englishus.bnl.
 
 Text format (same Rare CAFF container as Viva Pinata 1, see
 tools/make_russian_bnl.py): the third zlib stream holds LBSL blocks, each an
@@ -22,7 +26,12 @@ hashes); the game reads englishus.bnl.
 Length budget: the rebuilt bundle keeps every block at its original size (the
 stream directory in stream 0 is not rewritten), so the strings of one block
 share the block's space: sum(len(ru) + 1) must not exceed sum(len(en) + 1)
-over the block. Strings may borrow room from each other within a block.
+over the block. Strings may borrow room from each other within a block: build
+rewrites the block's offset table and puts the spare characters as extra
+terminators after its last string.
+
+The text stream must also keep its exact compressed size: stream 0 records it
+and the game inflates the stream in place (see compress_exact()).
 
 The work files hold game text and third-party translation text: they are
 gitignored and must never be committed.
@@ -31,19 +40,31 @@ gitignored and must never be committed.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import math
 import re
+import shutil
 import struct
+import subprocess
 import sys
+import tempfile
 import zlib
 from collections import Counter, defaultdict
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-BUNDLE = ROOT / "assets" / "Beta" / "bundles" / "englishus.bnl"
+BUNDLES = ROOT / "assets" / "Beta" / "bundles"
+BUNDLE = BUNDLES / "englishus.bnl"
+# The launcher replaces englishus.bnl with the Russian file and keeps the
+# original as englishus.bnl.orig; the tools always read the original.
+BUNDLE_ORIG = BUNDLES / "englishus.bnl.orig"
+OUTPUT = BUNDLES / "russian.bnl"
 WORK = ROOT / "translation" / "work"
 REPORT = ROOT / "translation" / "check_report.txt"
+
+# englishus.bnl from the tested disc (Redump, Title ID 4D53085F).
+ENGLISHUS_SHA1 = "6af790d0e5fd71e9e788283e8f59a32c3c6fa281"
 
 MAGIC = b"CAFF07.08.06.003"
 PART_SIZE = 400
@@ -75,15 +96,21 @@ class Caff:
         comp0 = struct.unpack_from(e32, self.raw, 0x60)[0]
         comp1 = struct.unpack_from(e32, self.raw, 0x74)[0]
         self.text_offset = header_end + comp0 + comp1
+        if self.raw[self.text_offset:self.text_offset + 1] != b"\x78":
+            raise ValueError(f"{path}: no zlib stream at 0x{self.text_offset:X}")
         self.text = zlib.decompressobj().decompress(self.raw[self.text_offset:])
+        self.text_size = len(self.raw) - self.text_offset  # compressed size the game expects
 
 
-def parse_blocks(data: bytes, big: bool) -> list[list[tuple[int, int, int, str]]]:
-    """Blocks of (hash, byte offset, slot length in chars, text with terminator)."""
+def source_bundle() -> Path:
+    return BUNDLE_ORIG if BUNDLE_ORIG.exists() else BUNDLE
+
+
+def block_tables(data: bytes, big: bool) -> list[tuple[int, int, int, list[tuple[int, int]]]]:
+    """Per LBSL block: (entry table offset, string base, total chars, [(hash, char offset)])."""
     tag = b"LBSL" if big else b"LSBL"
     e16, e32 = (">H", ">I") if big else ("<H", "<I")
-    enc = "utf-16-be" if big else "utf-16-le"
-    blocks = []
+    tables = []
     pos = 0
     while (t := data.find(tag, pos)) >= 0:
         pos = t + 4
@@ -95,9 +122,18 @@ def parse_blocks(data: bytes, big: bool) -> list[list[tuple[int, int, int, str]]
         base = ent + 6 * (count + 1)
         entries = [(struct.unpack_from(e16, data, ent + 6 * k)[0],
                     struct.unpack_from(e32, data, ent + 6 * k + 2)[0]) for k in range(count)]
+        tables.append((ent, base, total, entries))
+    return tables
+
+
+def parse_blocks(data: bytes, big: bool) -> list[list[tuple[int, int, int, str]]]:
+    """Blocks of (hash, byte offset, slot length in chars, text with terminator)."""
+    enc = "utf-16-be" if big else "utf-16-le"
+    blocks = []
+    for _, base, total, entries in block_tables(data, big):
         strings = []
         for k, (h, o) in enumerate(entries):
-            end = entries[k + 1][1] if k + 1 < count else total
+            end = entries[k + 1][1] if k + 1 < len(entries) else total
             a, b = base + 2 * o, base + 2 * end
             strings.append((h, a, end - o, data[a:b].decode(enc, errors="replace")))
         blocks.append(strings)
@@ -156,7 +192,7 @@ def cmd_extract(args) -> int:
         print(f"error: {WORK} already has work files; --force overwrites them (translations are lost)",
               file=sys.stderr)
         return 1
-    blocks = parse_blocks(Caff(BUNDLE).text, True)
+    blocks = parse_blocks(Caff(source_bundle()).text, True)
 
     zog: dict[str, set[str]] = defaultdict(set)
     if args.pc_ru and args.pc_en:
@@ -243,7 +279,7 @@ def load_work() -> tuple[list[dict], list[str]]:
 def cmd_check(args) -> int:
     entries, errors = load_work()
     warnings: list[str] = []
-    blocks = parse_blocks(Caff(BUNDLE).text, True)
+    blocks = parse_blocks(Caff(source_bundle()).text, True)
     game_texts = {body(t) for b in blocks for _, _, _, t in b if body(t)}
 
     by_en: dict[str, dict] = {}
@@ -304,6 +340,174 @@ def cmd_check(args) -> int:
     return 1 if errors else 0
 
 
+# --- build --------------------------------------------------------------------
+
+def find_7zip() -> str | None:
+    for p in (shutil.which("7z"), r"C:\Program Files\7-Zip\7z.exe", r"C:\Program Files (x86)\7-Zip\7z.exe"):
+        if p and Path(p).exists():
+            return p
+    return None
+
+
+def raw_deflate_zlib(data: bytes) -> bytes:
+    c = zlib.compressobj(9, zlib.DEFLATED, -15, 9)
+    return c.compress(data) + c.flush()
+
+
+def raw_deflate_7zip(data: bytes, seven_zip: str) -> bytes | None:
+    """Raw deflate stream from 7-Zip's encoder (gzip container stripped)."""
+    with tempfile.TemporaryDirectory() as tmp:
+        src, gz = Path(tmp) / "text.bin", Path(tmp) / "text.gz"
+        src.write_bytes(data)
+        r = subprocess.run([seven_zip, "a", "-tgzip", "-mx9", str(gz), str(src)], capture_output=True)
+        if r.returncode != 0 or not gz.exists():
+            return None
+        b = gz.read_bytes()
+    if b[:3] != b"\x1f\x8b\x08":
+        return None
+    flags, i = b[3], 10
+    if flags & 4:
+        i += 2 + struct.unpack_from("<H", b, i)[0]
+    for bit in (8, 16):  # file name, comment
+        if flags & bit:
+            i = b.index(b"\x00", i) + 1
+    if flags & 2:
+        i += 2
+    return b[i:-8]
+
+
+def stored_blocks(data: bytes) -> bytes:
+    """Non-final deflate stored blocks (byte-aligned, 5 bytes of header each)."""
+    out = bytearray()
+    for i in range(0, len(data), 65535):
+        chunk = data[i:i + 65535]
+        out += b"\x00" + struct.pack("<HH", len(chunk), len(chunk) ^ 0xFFFF) + chunk
+    return bytes(out)
+
+
+EMPTY_STORED_BLOCK = b"\x00\x00\x00\xff\xff"
+
+
+def compress_exact(data: bytes, size: int) -> bytes | None:
+    """A zlib stream of exactly `size` bytes (same as tools/make_russian_bnl.py
+    in Viva Pinata Recomp).
+
+    The game inflates the text stream in place: the compressed bytes sit at the
+    end of the output buffer and the output catches up with them only at the
+    very end. A shorter stream padded with zeros ends early, so its last bytes
+    are overwritten before they are read (garbage text, crashes). The stream
+    must fill the region exactly: the first k bytes of text go into stored
+    (uncompressed) blocks, the rest is deflated, and empty stored blocks absorb
+    the last few bytes. Stored data up front keeps the in-place order safe.
+    Cyrillic UTF-16 compresses worse than English, so 7-Zip's deflate encoder
+    is needed; zlib -9 is tried first."""
+    encoders = [("zlib", raw_deflate_zlib)]
+    seven_zip = find_7zip()
+    if seven_zip:
+        encoders.append(("7-Zip", lambda d: raw_deflate_7zip(d, seven_zip)))
+    trailer = struct.pack(">I", zlib.adler32(data))
+    for name, encode in encoders:
+        cache: dict[int, int] = {}
+
+        def total(k: int) -> int:
+            if k not in cache:
+                deflated = encode(data[k:])
+                cache[k] = (1 << 62) if deflated is None else \
+                    2 + len(stored_blocks(data[:k])) + len(deflated) + 4
+            return cache[k]
+
+        if total(0) > size:
+            print(f"  {name}: {total(0)} bytes, {total(0) - size} over the {size}-byte stream")
+            continue
+        # total(k) grows ~0.8 byte per byte moved into the stored prefix.
+        lo, hi = 0, min(len(data), int((size - total(0)) / 0.6) + 1)
+        while total(hi) <= size and hi < len(data):
+            lo, hi = hi, min(len(data), hi * 2)
+        while hi - lo > 1:  # largest k with total(k) <= size
+            mid = (lo + hi) // 2
+            if total(mid) <= size:
+                lo = mid
+            else:
+                hi = mid
+        for k in range(lo, max(-1, lo - 200), -1):
+            if total(k) > size or (size - total(k)) % 5:
+                continue
+            payload = stored_blocks(data[:k]) + encode(data[k:])
+            stream = b"\x78\x9c" + EMPTY_STORED_BLOCK * ((size - total(k)) // 5) + payload + trailer
+            if len(stream) == size and zlib.decompress(stream) == data:
+                print(f"  {name}: {k} bytes stored, {len(stream)} bytes total")
+                return stream
+    print(f"error: cannot build a {size}-byte text stream"
+          + ("" if seven_zip else " (install 7-Zip: zlib alone is not enough for Cyrillic)"),
+          file=sys.stderr)
+    return None
+
+
+def relayout(text: bytes, by_en: dict[str, str]) -> tuple[bytes, list[list[str]], Counter]:
+    """The text stream with the Russian strings; every block keeps its size."""
+    out = bytearray(text)
+    expected: list[list[str]] = []
+    stats: Counter = Counter()
+    for ent, base, total, entries in block_tables(text, True):
+        strings = []
+        for k, (h, o) in enumerate(entries):
+            end = entries[k + 1][1] if k + 1 < len(entries) else total
+            raw = text[base + 2 * o:base + 2 * end].decode("utf-16-be")
+            en = body(raw)
+            if not en:
+                strings.append(raw)  # empty slot: keep as is
+                continue
+            ru = by_en.get(en, "")
+            stats["translated" if ru else "english"] += 1
+            strings.append((ru or en) + "\x00")
+        used = sum(len(s) for s in strings)
+        if used > total:
+            raise ValueError(f"block at 0x{ent:X}: {used} chars, budget {total}")
+        strings[-1] += "\x00" * (total - used)
+        off = 0
+        for k, s in enumerate(strings):
+            struct.pack_into(">I", out, ent + 6 * k + 2, off)
+            off += len(s)
+        out[base:base + 2 * total] = "".join(strings).encode("utf-16-be")
+        expected.append(strings)
+    return bytes(out), expected, stats
+
+
+def cmd_build(args) -> int:
+    if cmd_check(args) != 0:
+        print("error: fix the errors above before building", file=sys.stderr)
+        return 1
+    src = source_bundle()
+    caff = Caff(src)
+    if hashlib.sha1(caff.raw).hexdigest() != ENGLISHUS_SHA1:
+        print(f"warning: {src} is not the tested englishus.bnl; continuing", file=sys.stderr)
+    entries, _ = load_work()
+    by_en = {e["en"]: e["ru"] for e in entries if e["ru"]}
+
+    text, expected, stats = relayout(caff.text, by_en)
+    if len(text) != len(caff.text):
+        print("error: text stream changed size", file=sys.stderr)
+        return 1
+    print(f"packing {len(text)} bytes of text into {caff.text_size} bytes...")
+    packed = compress_exact(text, caff.text_size)
+    if packed is None:
+        return 1
+    result = caff.raw[:caff.text_offset] + packed
+
+    # Self-check: same file size, same block tables (hashes, totals), every
+    # string reads back as written.
+    back = zlib.decompressobj().decompress(result[caff.text_offset:])
+    shape = lambda d: [(ent, base, total, [h for h, _ in e]) for ent, base, total, e in block_tables(d, True)]
+    got = [[t for _, _, _, t in b] for b in parse_blocks(back, True)]
+    if len(result) != len(caff.raw) or back != text or shape(back) != shape(caff.text) or got != expected:
+        print("error: self-check failed", file=sys.stderr)
+        return 1
+
+    args.out.write_bytes(result)
+    print(f"{args.out}: {stats['translated']} strings in Russian, {stats['english']} left in English")
+    return 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -313,11 +517,14 @@ def main() -> int:
     ex.add_argument("--force", action="store_true", help="overwrite existing work files")
     ch = sub.add_parser("check", help="validate translation/work/*.json")
     ch.add_argument("--show", type=int, default=40, help="errors to print (all go to the report)")
+    bu = sub.add_parser("build", help="check, then write assets/Beta/bundles/russian.bnl")
+    bu.add_argument("--show", type=int, default=40, help="errors to print (all go to the report)")
+    bu.add_argument("--out", type=Path, default=OUTPUT, help=f"output file (default {OUTPUT})")
     args = ap.parse_args()
-    if not BUNDLE.exists():
+    if not source_bundle().exists():
         print(f"error: {BUNDLE} not found (unpack the game into assets/)", file=sys.stderr)
         return 1
-    return cmd_extract(args) if args.cmd == "extract" else cmd_check(args)
+    return {"extract": cmd_extract, "check": cmd_check, "build": cmd_build}[args.cmd](args)
 
 
 if __name__ == "__main__":

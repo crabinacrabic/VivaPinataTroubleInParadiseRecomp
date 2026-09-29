@@ -1,5 +1,6 @@
 #include "LaunchMenu.h"
 #include "tip_engine/Globals.h"
+#include "tip_engine/Language.h"
 #include "tip_engine/version.h"
 #include <rex/cvar.h>
 #include <rex/filesystem.h>
@@ -151,6 +152,7 @@ void LaunchMenuDialog::SyncOptionsFromCVars() {
 
     resolutionIndex_ = (rex::cvar::Query<int32_t>("resolution_scale") >= kResolutionScales[1]) ? 1 : 0;
     qualityIndex_ = DetectQualityPreset();
+    russianAvailable_ = tip_language::RussianAvailable(gameRoot_);
 }
 
 double LaunchMenuDialog::EffectiveAspectRatio() const {
@@ -361,6 +363,28 @@ void LaunchMenuDialog::DrawOptionsWindow(ImGuiIO& io) {
         CVAR_CHECKBOX("Show FPS", show_fps);
         CVAR_CHECKBOX("Lock FPS", lock_fps);
         CVAR_CHECKBOX("Skip Intros", SkipIntros);
+
+        // Applied when the game starts (tip_language::Apply in RetipApp::LaunchModule).
+        // The launcher font is Latin-only, so the names stay in English.
+        ImGui::Spacing();
+        ImGui::SeparatorText("Language");
+        static constexpr const char* kEnglish = "English";
+        static constexpr const char* kRussian = "Russian (fan translation)";
+        const bool russian = russianAvailable_ && REXCVAR_GET(tip_language) == "ru";
+        ImGui::TextUnformatted("Game text");
+        ImGui::SetNextItemWidth(kItemWidth);
+        if (ImGui::BeginCombo("##GameText", russian ? kRussian : kEnglish)) {
+            if (ImGui::Selectable(kEnglish, !russian)) {
+                rex::cvar::SetFlagByName("tip_language", "en");
+            }
+            if (ImGui::Selectable(kRussian, russian, russianAvailable_ ? 0 : ImGuiSelectableFlags_Disabled)) {
+                rex::cvar::SetFlagByName("tip_language", "ru");
+            }
+            ImGui::EndCombo();
+        }
+        if (!russianAvailable_) {
+            ImGui::TextDisabled("Russian: build russian.bnl with tools/tip_text.py build");
+        }
     }
     ImGui::End();
 }

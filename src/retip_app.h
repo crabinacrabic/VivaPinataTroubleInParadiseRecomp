@@ -17,6 +17,7 @@
 #endif
 #include "tip_engine/Globals.h"
 #include "tip_engine/Compat.h"  // 0.10: discord_rpc stand-in
+#include "tip_engine/Language.h"
 #include <rex/filesystem.h>
 
 #include "tip_engine/hooks.h"
@@ -99,7 +100,7 @@ class RetipApp : public rex::ReXApp {
 
     // gameInstalled_ is set in OnConfigurePaths: in SDK 0.10 game_data_root()
     // is only filled in ConstructRuntime, after the dialogs are created.
-    launch_dialog_ = std::make_unique<LaunchMenuDialog>(drawer, window(), "retip.toml", gameInstalled_);
+    launch_dialog_ = std::make_unique<LaunchMenuDialog>(drawer, window(), "retip.toml", gameInstalled_, gameRoot_);
 
     quit_dialog_ = std::make_unique<QuitMenuDialog>(drawer, window());
 
@@ -116,10 +117,16 @@ class RetipApp : public rex::ReXApp {
   }
 
   void LaunchModule() override {
+    // The text language is installed right before the game starts, so a
+    // change in the launcher's options applies to this run.
     if (launch_dialog_ && (LaunchMenuDialog::WillShowOnStartup() || !gameInstalled_)) {
-      launch_dialog_->SetOnClosed([this] { rex::ReXApp::LaunchModule(); });
+      launch_dialog_->SetOnClosed([this] {
+        tip_language::Apply(gameRoot_);
+        rex::ReXApp::LaunchModule();
+      });
       return;
     }
+    tip_language::Apply(gameRoot_);
     rex::ReXApp::LaunchModule();
   }
 
@@ -162,10 +169,12 @@ class RetipApp : public rex::ReXApp {
     // only after ConstructRuntime - decide here whether the game is present.
     gameInstalled_ = !paths.game_data_root.empty() &&
                      std::filesystem::exists(paths.game_data_root / "default.xex");
+    gameRoot_ = gameInstalled_ ? paths.game_data_root : std::filesystem::path();
   }
 
  private:
   bool gameInstalled_ = true;
+  std::filesystem::path gameRoot_;
   std::unique_ptr<FpsOverlayDialog> fps_dialog_;
   std::unique_ptr<LaunchMenuDialog> launch_dialog_;
   std::unique_ptr<QuitMenuDialog> quit_dialog_;
