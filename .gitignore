@@ -66,3 +66,5 @@ __pycache__/
 # translation work files: game text + third-party (ZoG) text, never commit
 translation/work/
 translation/check_report.txt
+# translation pack for players (Russian text, ZoG credit): distributed separately
+translation/tip_russian.json

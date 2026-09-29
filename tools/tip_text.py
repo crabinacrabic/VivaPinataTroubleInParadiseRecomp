@@ -14,8 +14,13 @@ Subcommands
            translation/check_report.txt. Exit 0 = no errors.
   build    Runs the checks, then writes assets/Beta/bundles/russian.bnl: the
            englishus.bnl text stream with every block re-laid out around the
-           Russian strings, recompressed to its exact original size (needs
-           7-Zip). The launcher installs it over englishus.bnl.
+           Russian strings, recompressed to its exact original size (7-Zip is
+           tried when zlib is not enough). The launcher installs it over
+           englishus.bnl. Without work files it builds from the translation
+           pack translation/tip_russian.json (or --pack FILE).
+  export   Runs the checks, then writes the translation pack for players:
+           only the Russian strings, keyed by id and a CRC32 of the English
+           string, so it contains no game text.
 
 Text format (same Rare CAFF container as Viva Pinata 1, see
 tools/make_russian_bnl.py in Viva Pinata Recomp): the third zlib stream holds LBSL blocks, each an
@@ -62,6 +67,13 @@ BUNDLE_ORIG = BUNDLES / "englishus.bnl.orig"
 OUTPUT = BUNDLES / "russian.bnl"
 WORK = ROOT / "translation" / "work"
 REPORT = ROOT / "translation" / "check_report.txt"
+PACK = ROOT / "translation" / "tip_russian.json"
+PACK_FORMAT = "tip-russian-1"
+PACK_CREDITS = [
+    "Names and about 4400 lines: ZoG Team (zoneofgames.ru), Russian translation of Viva Pinata (PC, 2007), "
+    "used with the team's permission",
+    "Other lines: translated with Google Gemini for Viva Pinata: Trouble in Paradise Recomp",
+]
 
 # englishus.bnl from the tested disc (Redump, Title ID 4D53085F).
 ENGLISHUS_SHA1 = "6af790d0e5fd71e9e788283e8f59a32c3c6fa281"
@@ -187,6 +199,25 @@ def soft_limit(en: str) -> int:
 
 # --- extract ------------------------------------------------------------------
 
+def unique_strings(blocks) -> tuple[list[str], dict[str, dict]]:
+    """Unique non-empty strings in game order; string n has the id t{n:05d}."""
+    order: list[str] = []
+    info: dict[str, dict] = {}
+    for blk in blocks:
+        texts = [body(t) for _, _, _, t in blk]
+        for i, en in enumerate(texts):
+            if not en:
+                continue
+            if en in info:
+                info[en]["uses"] += 1
+                continue
+            ctx = [t[:100] for t in (texts[i - 1] if i > 0 else "", texts[i + 1] if i + 1 < len(texts) else "")
+                   if t]
+            info[en] = {"uses": 1, "ctx": ctx}
+            order.append(en)
+    return order, info
+
+
 def cmd_extract(args) -> int:
     if WORK.exists() and any(WORK.glob("part_*.json")) and not args.force:
         print(f"error: {WORK} already has work files; --force overwrites them (translations are lost)",
@@ -203,20 +234,7 @@ def cmd_extract(args) -> int:
                 if body(en):
                     zog[norm(en)].add(body(ru))
 
-    order: list[str] = []
-    info: dict[str, dict] = {}
-    for blk in blocks:
-        texts = [body(t) for _, _, _, t in blk]
-        for i, en in enumerate(texts):
-            if not en:
-                continue
-            if en in info:
-                info[en]["uses"] += 1
-                continue
-            ctx = [t[:100] for t in (texts[i - 1] if i > 0 else "", texts[i + 1] if i + 1 < len(texts) else "")
-                   if t]
-            info[en] = {"uses": 1, "ctx": ctx}
-            order.append(en)
+    order, info = unique_strings(blocks)
 
     entries, prefilled, hints, glossary = [], 0, 0, {}
     for n, en in enumerate(order, 1):
@@ -276,8 +294,7 @@ def load_work() -> tuple[list[dict], list[str]]:
     return entries, errors
 
 
-def cmd_check(args) -> int:
-    entries, errors = load_work()
+def run_checks(entries: list[dict], errors: list[str], show: int) -> int:
     warnings: list[str] = []
     blocks = parse_blocks(Caff(source_bundle()).text, True)
     game_texts = {body(t) for b in blocks for _, _, _, t in b if body(t)}
@@ -331,13 +348,73 @@ def cmd_check(args) -> int:
     REPORT.parent.mkdir(parents=True, exist_ok=True)
     with REPORT.open("w", encoding="utf-8", newline="\n") as f:
         f.write(summary + "\n\nERRORS\n" + "\n".join(errors) + "\n\nWARNINGS\n" + "\n".join(warnings) + "\n")
-    for line in errors[:args.show]:
+    for line in errors[:show]:
         print("error:", line)
-    if len(errors) > args.show:
-        print(f"... {len(errors) - args.show} more errors in {REPORT}")
+    if len(errors) > show:
+        print(f"... {len(errors) - show} more errors in {REPORT}")
     print(summary)
     print(f"full report: {REPORT}")
     return 1 if errors else 0
+
+
+def cmd_check(args) -> int:
+    entries, errors = load_work()
+    return run_checks(entries, errors, args.show)
+
+
+# --- translation pack -----------------------------------------------------------
+# The file players download: only the Russian strings, keyed by id plus a CRC32
+# of the English string (no game text). build --pack rebuilds the English side
+# from the player's own englishus.bnl and verifies every CRC.
+
+def en_crc(en: str) -> str:
+    return f"{zlib.crc32(en.encode('utf-8')):08x}"
+
+
+def cmd_export(args) -> int:
+    entries, errors = load_work()
+    if run_checks(entries, errors, args.show) != 0:
+        print("error: fix the errors above before exporting", file=sys.stderr)
+        return 1
+    strings = [{"id": e["id"], "crc": en_crc(e["en"]), "ru": e["ru"]}
+               for e in entries if e["ru"] and e["ru"] != e["en"]]
+    pack = {
+        "format": PACK_FORMAT,
+        "game": "Viva Pinata: Trouble in Paradise (Xbox 360), Title ID 4D53085F",
+        "source": "Beta/bundles/englishus.bnl",
+        "source_sha1": ENGLISHUS_SHA1,
+        "credits": PACK_CREDITS,
+        "strings": strings,
+    }
+    args.out.parent.mkdir(parents=True, exist_ok=True)
+    args.out.write_text(json.dumps(pack, ensure_ascii=False, indent=1) + "\n", encoding="utf-8", newline="\n")
+    print(f"{args.out}: {len(strings)} Russian strings")
+    return 0
+
+
+def entries_from_pack(path: Path) -> tuple[list[dict], list[str]]:
+    """Work-file entries rebuilt from a pack and the player's englishus.bnl."""
+    try:
+        pack = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as ex:
+        return [], [f"{path}: cannot read the translation pack: {ex}"]
+    if not isinstance(pack, dict) or pack.get("format") != PACK_FORMAT:
+        return [], [f"{path}: not a {PACK_FORMAT} translation pack"]
+    src = source_bundle()
+    if hashlib.sha1(src.read_bytes()).hexdigest() != pack.get("source_sha1"):
+        print(f"warning: {src} is not the englishus.bnl the pack was made for; "
+              "strings are matched by id and checksum", file=sys.stderr)
+    order, _ = unique_strings(parse_blocks(Caff(src).text, True))
+    by_id = {f"t{n:05d}": en for n, en in enumerate(order, 1)}
+    ru_by_id, errors = {}, []
+    for s in pack.get("strings", []):
+        en = by_id.get(s.get("id"))
+        if en is None or en_crc(en) != s.get("crc"):
+            errors.append(f"{path.name} {s.get('id')}: does not match this englishus.bnl")
+            continue
+        ru_by_id[s["id"]] = s.get("ru", "")
+    entries = [{"id": i, "en": en, "ru": ru_by_id.get(i, ""), "_file": path.name} for i, en in by_id.items()]
+    return entries, errors
 
 
 # --- build --------------------------------------------------------------------
@@ -474,14 +551,22 @@ def relayout(text: bytes, by_en: dict[str, str]) -> tuple[bytes, list[list[str]]
 
 
 def cmd_build(args) -> int:
-    if cmd_check(args) != 0:
+    # Work files (translators) first; otherwise the downloaded pack (players).
+    pack = args.pack
+    if pack is None and not any(WORK.glob("part_*.json")) and PACK.exists():
+        pack = PACK
+    if pack is not None:
+        print(f"using the translation pack {pack}")
+        entries, errors = entries_from_pack(pack)
+    else:
+        entries, errors = load_work()
+    if run_checks(entries, errors, args.show) != 0:
         print("error: fix the errors above before building", file=sys.stderr)
         return 1
     src = source_bundle()
     caff = Caff(src)
     if hashlib.sha1(caff.raw).hexdigest() != ENGLISHUS_SHA1:
         print(f"warning: {src} is not the tested englishus.bnl; continuing", file=sys.stderr)
-    entries, _ = load_work()
     by_en = {e["en"]: e["ru"] for e in entries if e["ru"]}
 
     text, expected, stats = relayout(caff.text, by_en)
@@ -504,7 +589,8 @@ def cmd_build(args) -> int:
         return 1
 
     args.out.write_bytes(result)
-    print(f"{args.out}: {stats['translated']} strings in Russian, {stats['english']} left in English")
+    print(f"{args.out}: {stats['translated']} strings in Russian, {stats['english']} unchanged "
+          "(names and credits that stay the same, or untranslated)")
     return 0
 
 
@@ -520,11 +606,17 @@ def main() -> int:
     bu = sub.add_parser("build", help="check, then write assets/Beta/bundles/russian.bnl")
     bu.add_argument("--show", type=int, default=40, help="errors to print (all go to the report)")
     bu.add_argument("--out", type=Path, default=OUTPUT, help=f"output file (default {OUTPUT})")
+    bu.add_argument("--pack", type=Path,
+                    help=f"build from a translation pack (default: {PACK} when there are no work files)")
+    exp = sub.add_parser("export", help="check, then write the translation pack (Russian strings only)")
+    exp.add_argument("--show", type=int, default=40, help="errors to print (all go to the report)")
+    exp.add_argument("--out", type=Path, default=PACK, help=f"output file (default {PACK})")
     args = ap.parse_args()
     if not source_bundle().exists():
         print(f"error: {BUNDLE} not found (unpack the game into assets/)", file=sys.stderr)
         return 1
-    return {"extract": cmd_extract, "check": cmd_check, "build": cmd_build}[args.cmd](args)
+    return {"extract": cmd_extract, "check": cmd_check, "build": cmd_build,
+            "export": cmd_export}[args.cmd](args)
 
 
 if __name__ == "__main__":
