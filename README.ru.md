@@ -53,7 +53,7 @@
 1. Установите ИИ-ассистента, который умеет выполнять команды на компьютере, например [Claude Code](https://claude.com/claude-code), OpenAI Codex или Cursor.
 2. Вставьте в него это сообщение, указав настоящий путь к ISO:
 
-   > Установи Viva Piñata: Trouble in Paradise Recomp на этот ПК: https://github.com/crabinacrabic/VivaPinataTroubleInParadiseRecomp — следуй AGENTS.md из этого репозитория. Мой образ диска лежит в `C:\путь\к\Viva Pinata - Trouble in Paradise (World).iso`.
+   > Установи Viva Piñata: Trouble in Paradise Recomp на этот ПК: https://github.com/crabinacrabic/VivaPinataTroubleInParadiseRecomp — следуй AGENTS.md из этого репозитория. Мой образ диска лежит в `C:\путь\к\Viva Pinata - Trouble in Paradise (World).iso`. Русский язык: не нужен / нужен.
 
 3. Агент всё скачает и проверит. Когда он попросит, пройдите установщик Visual Studio и нажмите **Сборка** в Visual Studio.
 4. Когда он закончит, запустите `out\build\local-win-relwithdebinfo\retip.exe`.
@@ -89,13 +89,18 @@
 - остальные 4 600 строк переведены с помощью Google Gemini с теми же названиями;
 - [`tools/tip_text.py`](tools/tip_text.py) проверяет все 9 019 строк: разметку, значки кнопок, имена, которые подставляет игра, и то, что текст помещается в блоки текста игры.
 
-Файлов перевода здесь нет, потому что в них текст игры. Если они лежат в `translation/work/`, выполните:
+Названия и строки ZoG Team используются с разрешения команды. Установка:
 
-```bash
-python tools/tip_text.py build
-```
+1. Скачайте **[VivaPinataTiP_Russian_v1.zip](https://disk.yandex.ru/d/BMFSpKGapzwuaw)** (Яндекс Диск, 319 КБ). В нём только русский текст, файлов игры нет.
+2. Распакуйте его в папку проекта, чтобы появился файл `translation\tip_russian.json`.
+3. Установите [Python 3](https://www.python.org/), затем выполните в папке проекта:
+   ```bash
+   python tools/tip_text.py build
+   ```
+   За несколько секунд появится `assets/Beta/bundles/russian.bnl`.
+4. В лаунчере выберите **OPTIONS → Language → Game text → Russian**.
 
-За несколько секунд появится `assets/Beta/bundles/russian.bnl`. Затем в лаунчере выберите **OPTIONS → Language → Game text → Russian**. Выбор English возвращает оригинальный файл.
+Выбор English возвращает оригинальный файл.
 
 ## Управление
 

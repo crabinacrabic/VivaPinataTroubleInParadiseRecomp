@@ -106,14 +106,20 @@ In game: hold **Back** on the controller for 0.5 s for the ReTiP tools menu; `Sh
 
 ### 1.7 Optional: Russian language
 
-The Russian text is built from the translation work files `translation\work\part_*.json`. They contain game text, so they are **not in this repository**; ask the user whether they have them. Without them the Russian language is not possible.
+The translation (ZoG Team names and lines, used with the team's permission, plus lines translated with Google Gemini) is distributed as a pack that holds only the Russian strings: **[VivaPinataTiP_Russian_v1.zip](https://disk.yandex.ru/d/BMFSpKGapzwuaw)** on Yandex Disk (326 833 bytes, MD5 `afdc9351ec8ff10041b8068c8b88c56c`). It is not game data; ask the user before downloading it. Needs Python 3.
 
 ```powershell
 cd C:\Games\VivaPinataTiPRecomp
+$api = 'https://cloud-api.yandex.net/v1/disk/public/resources/download?public_key=' + [uri]::EscapeDataString('https://disk.yandex.ru/d/BMFSpKGapzwuaw')
+Invoke-WebRequest (Invoke-RestMethod $api).href -OutFile $env:TEMP\VivaPinataTiP_Russian_v1.zip
+(Get-FileHash $env:TEMP\VivaPinataTiP_Russian_v1.zip -Algorithm MD5).Hash   # expected AFDC9351EC8FF10041B8068C8B88C56C
+Expand-Archive $env:TEMP\VivaPinataTiP_Russian_v1.zip -DestinationPath . -Force   # -> translation\tip_russian.json
 python tools\tip_text.py build
 # expected: "9019/9019 strings translated, 0 errors ..." and
-#           "...russian.bnl: 15953 strings in Russian, 0 left in English" (a few seconds)
+#           "...russian.bnl: 15632 strings in Russian, 321 unchanged ..." (a few seconds)
 ```
+
+Translators with the work files `translation\work\part_*.json` (gitignored) build from those instead; `tools\tip_text.py export` writes the pack from them.
 
 Then in the launcher choose **OPTIONS → Language → Game text → Russian (fan translation)** and press **PLAY** (or start with `--tip_language=ru`). Before the game starts, the launcher copies `russian.bnl` over `Beta\bundles\englishus.bnl` (the file the game reads) and keeps the disc file as `englishus.bnl.orig` (backed up only if its SHA-1 is the disc's `6af790d0…`). Choosing English restores it.
 

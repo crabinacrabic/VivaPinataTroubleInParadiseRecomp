@@ -53,7 +53,7 @@ Other editions have not been tested. *Viva Piñata* (2006) and *Viva Piñata: Pa
 1. Install an AI assistant that can run commands on your computer, for example [Claude Code](https://claude.com/claude-code), OpenAI Codex or Cursor.
 2. Paste this message into it, with the real path to your ISO:
 
-   > Install Viva Piñata: Trouble in Paradise Recomp on this PC: https://github.com/crabinacrabic/VivaPinataTroubleInParadiseRecomp — follow AGENTS.md from that repository. My game disc image is at `C:\path\to\Viva Pinata - Trouble in Paradise (World).iso`.
+   > Install Viva Piñata: Trouble in Paradise Recomp on this PC: https://github.com/crabinacrabic/VivaPinataTroubleInParadiseRecomp — follow AGENTS.md from that repository. My game disc image is at `C:\path\to\Viva Pinata - Trouble in Paradise (World).iso`. I also want the Russian language: no / yes.
 
 3. The agent downloads and checks everything. When it asks, click through the Visual Studio installer and press **Build** in Visual Studio.
 4. When it is done, start `out\build\local-win-relwithdebinfo\retip.exe`.
@@ -89,13 +89,18 @@ The Xbox disc has no Russian, and there was no translation of this game, so it w
 - the other 4 600 lines were translated with Google Gemini, using the same names;
 - [`tools/tip_text.py`](tools/tip_text.py) checks all 9 019 lines: markup, button icons, names inserted by the game, and that the text fits the game's text blocks.
 
-The translation files are not stored here, because they contain the game's text. With them in `translation/work/`, run:
+The names and lines from ZoG Team are used with the team's permission. To install:
 
-```bash
-python tools/tip_text.py build
-```
+1. Download **[VivaPinataTiP_Russian_v1.zip](https://disk.yandex.ru/d/BMFSpKGapzwuaw)** (Yandex Disk, 319 KB). It holds only the Russian text, no game files.
+2. Unzip it into the project folder, so that `translation\tip_russian.json` appears.
+3. Install [Python 3](https://www.python.org/), then run in the project folder:
+   ```bash
+   python tools/tip_text.py build
+   ```
+   It writes `assets/Beta/bundles/russian.bnl` in a few seconds.
+4. Choose **OPTIONS → Language → Game text → Russian** in the launcher.
 
-It writes `assets/Beta/bundles/russian.bnl` in a few seconds. Then choose **OPTIONS → Language → Game text → Russian** in the launcher. Choosing English puts the original file back.
+Choosing English puts the original file back.
 
 ## Controls
 
