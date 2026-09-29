@@ -19,7 +19,6 @@ Talk to the user in their own language. Many users of this project speak Russian
 - Ask before you start installers (Visual Studio, Git, Python) and before accepting licences.
 - The project path must contain **only ASCII characters**, for example `C:\Games\VivaPinataTiPRecomp`. The ReXGlue code generator crashes with `0xC0000409` on paths with non-ASCII characters.
 - Do not commit or redistribute `assets\` (except `assets\README.md`), `assets\Beta\bundles\russian.bnl`, `translation\work\` or `translation\check_report.txt`: they contain game text.
-- The repository is private: the user's GitHub account needs access to clone it.
 - Build the configuration **`local-win-relwithdebinfo`**. `local-win-debug` links the SDK's debug runtime, which crashes a few seconds after **PLAY** (section 1.9).
 
 ### 1.1 Check the machine
