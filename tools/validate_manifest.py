@@ -10,7 +10,7 @@ codegen in Visual Studio:
   * every include exists and parses (toml 1.0)
   * keys are limited to what RecompilerConfig::LoadFromTable understands
   * [functions]/[rexcrt]/[[midasm_hook]] addresses are 4-byte aligned and
-    inside the image (0x82000000..0x82B90000, from the XEX header)
+    inside the image (0x82000000..0x83FA0000, from the XEX header)
   * size/end are mutually exclusive; parent chunks point at known functions
   * [rexcrt] names come from the SDK's accepted list; the heap group is
     all-or-nothing
@@ -41,7 +41,7 @@ except ModuleNotFoundError:  # pragma: no cover
 
 
 IMAGE_BASE = 0x82000000
-IMAGE_SIZE = 0x00B90000
+IMAGE_SIZE = 0x01FA0000  # TiP default.xex image size (XEX header)
 IMAGE_END = IMAGE_BASE + IMAGE_SIZE
 
 PROJECT_KEYS = {"name", "sdk_version", "game_root"}

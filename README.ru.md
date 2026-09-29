@@ -48,6 +48,16 @@
 
 Другие издания не проверялись. *Viva Piñata* (2006) и *Viva Piñata: Party Animals* — другие игры; первая часть есть в проекте [Viva Piñata Recomp](https://github.com/crabinacrabic/VivaPinataRecomp).
 
+## Простой способ: установка через ИИ-агента
+
+1. Установите ИИ-ассистента, который умеет выполнять команды на компьютере, например [Claude Code](https://claude.com/claude-code), OpenAI Codex или Cursor.
+2. Вставьте в него это сообщение, указав настоящий путь к ISO:
+
+   > Установи Viva Piñata: Trouble in Paradise Recomp на этот ПК: https://github.com/crabinacrabic/VivaPinataTroubleInParadiseRecomp — следуй AGENTS.md из этого репозитория. Мой образ диска лежит в `C:\путь\к\Viva Pinata - Trouble in Paradise (World).iso`.
+
+3. Агент всё скачает и проверит. Когда он попросит, пройдите установщик Visual Studio и нажмите **Сборка** в Visual Studio.
+4. Когда он закончит, запустите `out\build\local-win-relwithdebinfo\retip.exe`.
+
 ## Установка своими руками (6 шагов)
 
 1. **Установите инструменты.** Нужны:
@@ -108,7 +118,9 @@ python tools/tip_text.py build
 
 ## Настройки
 
-Почти всё настраивается в лаунчере. Остальное — в `retip.toml` рядом с `retip.exe` (создаётся из [`packaged/retip.toml`](packaged/retip.toml) при первой сборке). Моды из [`packaged/mods`](packaged/mods) (исправления воды, дизеринга и льда, настройки таблички профиля) включены по умолчанию.
+Почти всё настраивается в лаунчере. Остальное — в `retip.toml` рядом с `retip.exe` (создаётся из [`packaged/retip.toml`](packaged/retip.toml) при первой сборке).
+
+Там же перечислены моды из [`packaged/mods`](packaged/mods). С ReXGlue SDK 0.10 работают только моды данных (PureTagColors); моды текстур и шейдеров (WaterFix, DitherFix, IceShader, BorderlessTag, CustomProfileTag) требовали GPU-слоя исходного форка SDK и пока неактивны.
 
 ## Что работает
 
@@ -116,8 +128,9 @@ python tools/tip_text.py build
 | :-- | :-- |
 | ✅ | Титульный экран, меню и сад |
 | ✅ | Звук, геймпад Xbox, мышь и клавиатура |
-| ✅ | Лаунчер с настройками экрана и качества, меню инструментов ReTiP, моды |
+| ✅ | Лаунчер с настройками экрана и качества, меню инструментов ReTiP |
 | ✅ | Русский текст |
+| 🚧 | Моды текстур и шейдеров неактивны (моды данных работают) |
 | 🚧 | Только Direct3D 12 |
 | 🚧 | Камера Xbox Live Vision и сетевая игра не поддерживаются |
 

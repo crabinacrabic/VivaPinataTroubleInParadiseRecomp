@@ -48,6 +48,16 @@ It is [SolarCookies/TiP-Recomp](https://github.com/SolarCookies/TiP-Recomp) (ReT
 
 Other editions have not been tested. *Viva Piñata* (2006) and *Viva Piñata: Party Animals* are different games; for the first one see [Viva Piñata Recomp](https://github.com/crabinacrabic/VivaPinataRecomp).
 
+## The easy way: let an AI agent install it
+
+1. Install an AI assistant that can run commands on your computer, for example [Claude Code](https://claude.com/claude-code), OpenAI Codex or Cursor.
+2. Paste this message into it, with the real path to your ISO:
+
+   > Install Viva Piñata: Trouble in Paradise Recomp on this PC: https://github.com/crabinacrabic/VivaPinataTroubleInParadiseRecomp — follow AGENTS.md from that repository. My game disc image is at `C:\path\to\Viva Pinata - Trouble in Paradise (World).iso`.
+
+3. The agent downloads and checks everything. When it asks, click through the Visual Studio installer and press **Build** in Visual Studio.
+4. When it is done, start `out\build\local-win-relwithdebinfo\retip.exe`.
+
 ## Doing it yourself (6 steps)
 
 1. **Install the tools.** You need:
@@ -108,7 +118,9 @@ Extra keys of this project:
 
 ## Settings
 
-Most settings are in the launcher. Everything else is in `retip.toml` next to `retip.exe` (created from [`packaged/retip.toml`](packaged/retip.toml) on the first build). The mods from [`packaged/mods`](packaged/mods) (water, dithering and ice fixes, profile tag options) are on by default.
+Most settings are in the launcher. Everything else is in `retip.toml` next to `retip.exe` (created from [`packaged/retip.toml`](packaged/retip.toml) on the first build).
+
+The mods from [`packaged/mods`](packaged/mods) are listed there too. With ReXGlue SDK 0.10 only data mods work (PureTagColors); the texture and shader mods (WaterFix, DitherFix, IceShader, BorderlessTag, CustomProfileTag) needed the GPU layer of the original SDK fork and are inactive for now.
 
 ## What works
 
@@ -116,8 +128,9 @@ Most settings are in the launcher. Everything else is in `retip.toml` next to `r
 | :-- | :-- |
 | ✅ | Title screen, menus and the garden |
 | ✅ | Sound, Xbox controller, mouse and keyboard |
-| ✅ | Launcher with display and quality options, ReTiP tools menu, mods |
+| ✅ | Launcher with display and quality options, ReTiP tools menu |
 | ✅ | Russian text |
+| 🚧 | Texture and shader mods are inactive (data mods work) |
 | 🚧 | Direct3D 12 only |
 | 🚧 | The Xbox Live Vision camera and online play are not supported |
 
