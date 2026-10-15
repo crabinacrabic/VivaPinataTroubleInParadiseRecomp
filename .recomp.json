@@ -1,0 +1,30 @@
+{
+  "$schema": "https://recomp.fyi/schema/v1.json",
+  "game": "Viva Piñata: Trouble in Paradise",
+  "wikidata": "Q1620251",
+  "system": "Xbox 360",
+  "type": "recomp",
+  "original": {
+    "serial": "4D53085F"
+  },
+  "project": "Viva Piñata: Trouble in Paradise PC Recompilation",
+  "status": "playable",
+  "targets": [
+    "Windows"
+  ],
+  "toolchain": "Rexglue",
+  "approach": "Static recompilation moved to ReXGlue SDK 0.10 with native Direct3D 12",
+  "maintainers": [
+    {
+      "name": "crabinacrabic",
+      "link": "https://github.com/crabinacrabic"
+    }
+  ],
+  "links": [
+    {
+      "label": "GitHub",
+      "url": "https://github.com/crabinacrabic/VivaPinataTroubleInParadiseRecomp"
+    }
+  ],
+  "notes": "Viva Piñata: Trouble in Paradise (Xbox 360, 2008, 4D53085F) running natively on Windows PC via ReXGlue SDK 0.10. Full mouse controls, launcher, and Russian translation."
+}
