@@ -29,6 +29,7 @@ public:
 
 private:
     void EnsureWallpaper();
+    void EnsureIcon();
     void DrawOptionsWindow(ImGuiIO& io);
     void SyncOptionsFromCVars();
     void StartGame();
@@ -50,6 +51,10 @@ private:
     int wallpaperW_ = 0;
     int wallpaperH_ = 0;
     bool wallpaperLoadFailed_ = false;
+
+    // retip/icon.png (packaged/retip/icon.png), drawn left of the title.
+    std::unique_ptr<rex::ui::ImmediateTexture> icon_;
+    bool iconLoadFailed_ = false;
 
     rex::ui::Window* window_ = nullptr;
     std::filesystem::path configPath_;

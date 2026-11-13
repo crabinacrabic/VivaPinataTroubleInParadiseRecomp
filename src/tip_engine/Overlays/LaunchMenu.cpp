@@ -158,6 +158,28 @@ void LaunchMenuDialog::ReleaseWallpaper() {
     wallpaper_.reset();
     wallpaperPixels_.clear();
     wallpaperPixels_.shrink_to_fit();
+    icon_.reset();
+}
+
+void LaunchMenuDialog::EnsureIcon() {
+    if (icon_ || iconLoadFailed_ || !g_immediate_drawer) return;
+    auto path = rex::filesystem::GetExecutableFolder() / "retip" / "icon.png";
+    std::ifstream file(path, std::ios::binary | std::ios::ate);
+    if (!file) {
+        iconLoadFailed_ = true;
+        return;
+    }
+    std::vector<uint8_t> bytes(static_cast<size_t>(file.tellg()));
+    file.seekg(0);
+    file.read(reinterpret_cast<char*>(bytes.data()), bytes.size());
+    int w = 0, h = 0;
+    std::vector<uint8_t> pixels = rex::ui::DecodeImageRGBA(bytes.data(), bytes.size(), w, h);
+    if (pixels.empty()) {
+        iconLoadFailed_ = true;
+        return;
+    }
+    icon_ = g_immediate_drawer->CreateTexture(w, h, rex::ui::ImmediateTextureFilter::kLinear, false, pixels.data());
+    iconLoadFailed_ = !icon_;
 }
 
 void LaunchMenuDialog::EnsureWallpaper() {
@@ -309,11 +331,20 @@ void LaunchMenuDialog::OnDraw(ImGuiIO& io) {
     dl->AddRectFilledMultiColor(ImVec2(0, barTop - 70.0f), ImVec2(disp.x, barTop), ImColor(0, 0, 0, 0), ImColor(0, 0, 0, 0), ImColor(0, 0, 0, 200), ImColor(0, 0, 0, 200));
     dl->AddRectFilled(ImVec2(0, barTop), disp, ImColor(0, 0, 0, 200));
 
-    ImGui::SetCursorPos(ImVec2(kPad, barTop + 20.0f));
+    EnsureIcon();
+    float titleX = kPad;
+    if (icon_) {
+        const float iconSize = kBarHeight - 28.0f;
+        const ImVec2 iconPos(kPad, barTop + (kBarHeight - iconSize) * 0.5f);
+        dl->AddImage(reinterpret_cast<ImTextureID>(icon_.get()), iconPos,
+                     ImVec2(iconPos.x + iconSize, iconPos.y + iconSize));
+        titleX = kPad + iconSize + 16.0f;
+    }
+    ImGui::SetCursorPos(ImVec2(titleX, barTop + 20.0f));
     ImGui::SetWindowFontScale(2.0f);
     ImGui::TextUnformatted("ReTiP");
     ImGui::SetWindowFontScale(1.0f);
-    ImGui::SetCursorPos(ImVec2(kPad + 2.0f, barTop + 58.0f));
+    ImGui::SetCursorPos(ImVec2(titleX + 2.0f, barTop + 58.0f));
     ImGui::TextDisabled("Version %s", retipversion.c_str());
 
     float rowY = disp.y - kRowBottomPad - kBtnHeight;
