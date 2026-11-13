@@ -10,8 +10,8 @@
 
 [![Platform](https://img.shields.io/badge/platform-Windows%20x64-0078D6?logo=windows&logoColor=white)](#что-нужно)
 [![Title ID](https://img.shields.io/badge/Title%20ID-4D53085F-107C10?logo=xbox&logoColor=white)](#какая-версия-игры-нужна)
-[![ReXGlue SDK](https://img.shields.io/badge/ReXGlue%20SDK-v0.10.0.8-8A2BE2)](https://github.com/rexglue/rexglue-sdk)
-[![Renderer](https://img.shields.io/badge/render-Direct3D%2012-blue)](#настройки)
+[![ReXGlue SDK](https://img.shields.io/badge/ReXGlue%20SDK-RED%20Edition%20LAVA-8A2BE2)](https://github.com/crabinacrabic/rexglue-sdk-RED-Edition-LAVA)
+[![Renderer](https://img.shields.io/badge/render-Direct3D%2012%20%7C%20Vulkan-blue)](#режимы-рендера)
 [![Status](https://img.shields.io/badge/status-playable-2ea44f)](#что-работает)
 [![Languages](https://img.shields.io/badge/text-English%20%7C%20Русский-orange)](#русский-язык)
 
@@ -32,7 +32,7 @@
 
 ## Что нужно
 
-- ПК с Windows 10 или 11 (64-бит) и видеокартой с DirectX 12.
+- ПК с Windows 10 или 11 (64-бит) и видеокартой с DirectX 12. Для режима рендера **Accurate** («Точный») ещё нужен Vulkan с fragment shader interlock (проверено на AMD Radeon RX 6600).
 - Около **25 ГБ** свободного места (Visual Studio ~12 ГБ, игра ~5 ГБ, образ диска ~8 ГБ на время распаковки).
 - Свой образ диска (`.iso`) **Viva Piñata: Trouble in Paradise** для Xbox 360.
 
@@ -79,7 +79,7 @@
    - Нажмите **Сборка → Собрать все** (`F7`).
 5. **Запустите:** `Ctrl+F5` в Visual Studio или двойной щелчок по `out\build\local-win-relwithdebinfo\retip.exe`. Игра запускается в окне.
 6. **В лаунчере** нажмите **PLAY** (или `Enter`).
-   - В **OPTIONS**: соотношение сторон (от 16:9 до 32:9 или своё), разрешение (720p / 1440p), качество графики, полный экран, счётчик и ограничение FPS, пропуск вступительных роликов и язык текста игры.
+   - В **OPTIONS**: соотношение сторон (от 16:9 до 32:9 или своё), разрешение (720p / 1440p), качество графики, [режим рендера](#режимы-рендера), полный экран, счётчик и ограничение FPS, пропуск вступительных роликов и язык текста игры.
    - Кнопка в правом верхнем углу переключает полный экран и окно. Снимите галочку **Show this launcher on startup**, чтобы сразу попадать в игру.
 
 ## Русский язык
@@ -127,16 +127,28 @@
 
 Там же перечислены моды из [`packaged/mods`](packaged/mods). С ReXGlue SDK 0.10 работают только моды данных (PureTagColors); моды текстур и шейдеров (WaterFix, DitherFix, IceShader, BorderlessTag, CustomProfileTag) требовали GPU-слоя исходного форка SDK и пока неактивны.
 
+### Режимы рендера
+
+В лаунчере: **OPTIONS → Graphics → Render mode** (надписи лаунчера на английском: его шрифт только латинский).
+
+| Режим | Что это | Титульный экран, RX 6600 |
+| :-- | :-- | --: |
+| **Fast** («Быстрый», по умолчанию) | Direct3D 12 с собственными буферами кадра видеокарты ПК | 63–72 кадра/с |
+| **Accurate** («Точный») | Vulkan; видеопамять Xbox 360 (EDRAM) эмулируется точно, как на приставке | около 31 кадра/с |
+
+«Точный» режим взят из **RED Edition LAVA**, нашей сборки ReXGlue SDK ([crabinacrabic/rexglue-sdk-RED-Edition-LAVA](https://github.com/crabinacrabic/rexglue-sdk-RED-Edition-LAVA)), сделанной для [Viva Piñata Recomp](https://github.com/crabinacrabic/VivaPinataRecomp): без её ускорений точная эмуляция идёт здесь со скоростью 5–8 кадров/с. При смене режима игра один раз перезапустится. Если на ПК «Точный» работать не сможет (нет Vulkan или у видеокарты нет fragment shader interlock), лаунчер напишет об этом жёлтым, а счётчик FPS показывает режим, который работает на самом деле.
+
 ## Что работает
 
 | | |
 | :-- | :-- |
 | ✅ | Титульный экран, меню и сад |
 | ✅ | Звук, геймпад Xbox, мышь и клавиатура |
-| ✅ | Лаунчер с настройками экрана и качества, меню инструментов ReTiP |
+| ✅ | Лаунчер с настройками экрана, качества и режима рендера, меню инструментов ReTiP |
 | ✅ | Русский текст |
+| ✅ | Direct3D 12 («Быстрый») и Vulkan с точной эмуляцией EDRAM Xbox 360 («Точный») |
+| 🚧 | «Точный» режим новый: проверен на титульном экране и в демо-режиме, в долгой игре ещё нет |
 | 🚧 | Моды текстур и шейдеров неактивны (моды данных работают) |
-| 🚧 | Только Direct3D 12 |
 | 🚧 | Камера Xbox Live Vision и сетевая игра не поддерживаются |
 
 ## Если что-то не так
@@ -146,7 +158,8 @@
 | В лаунчере «Game files not found», **PLAY** серая | Проверьте, что есть `assets\default.xex` и `assets\Beta` |
 | Игра закрывается через несколько секунд после **PLAY** в сборке `local-win-debug` | Ошибка в отладочной версии SDK (его отрисовщик интерфейса использует недействительный итератор, когда освобождает текстуру). Собирайте `local-win-relwithdebinfo` |
 | Visual Studio останавливается на «нарушении прав доступа» при запуске через `F5` | Это не падение. Отключите остановку на `0xC0000005` (Отладка → Окна → Параметры исключений) или запускайте через `Ctrl+F5` |
-| Ошибка сборки `Microsoft Visual C/C++ Version differs in precompiled file` | Обновилась Visual Studio. Удалите `out\build\local-win-relwithdebinfo` и соберите заново |
+| Ошибка сборки `Microsoft Visual C/C++ Version differs in precompiled file` или `… has been modified since the precompiled header … was built` | Обновилась Visual Studio или Windows SDK. Удалите `out\build\local-win-relwithdebinfo` и соберите заново |
+| Лаунчер показывает жёлтое предупреждение под режимом Accurate, или счётчик FPS показывает режим жёлтым (`D3D12 (Vulkan unavailable)`, `Vulkan, FBO (no FSI support)`) | На этом ПК «Точный» не работает, и игра идёт другим путём. Выберите Fast; пожалуйста, напишите в issue, какая у вас видеокарта |
 | Генерация кода падает с `0xC0000409` | В пути к проекту есть русские буквы. Перенесите проект, например в `C:\Games\VivaPinataTiPRecomp` |
 
 Логи пишутся в `out\build\local-win-relwithdebinfo\logs\`.
@@ -160,7 +173,7 @@
 ## Благодарности
 
 - [SolarCookies/TiP-Recomp](https://github.com/SolarCookies/TiP-Recomp): исходный проект (ReTiP)
-- [ReXGlue SDK](https://github.com/rexglue/rexglue-sdk): рекомпилятор и среда выполнения
+- [ReXGlue SDK](https://github.com/rexglue/rexglue-sdk): рекомпилятор и среда выполнения; наша сборка [RED Edition LAVA](https://github.com/crabinacrabic/rexglue-sdk-RED-Edition-LAVA) — для «Точного» режима
 - [Xenia](https://github.com/xenia-project/xenia) и [Xenia Canary](https://github.com/xenia-canary/xenia-canary): графический движок
 - ZoG Team ([Zone of Games](https://www.zoneofgames.ru/)): русский перевод первой части, основа для названий и многих строк
 - Rare: за чудесную игру

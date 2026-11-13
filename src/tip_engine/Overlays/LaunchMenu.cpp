@@ -1,14 +1,22 @@
 #include "LaunchMenu.h"
 #include "tip_engine/Globals.h"
 #include "tip_engine/Language.h"
+#include "tip_engine/RenderMode.h"
+#include "tip_engine/VulkanFsiProbe.h"
 #include "tip_engine/version.h"
 #include <rex/cvar.h>
 #include <rex/filesystem.h>
+#include <rex/logging.h>
 #include <rex/ui/image_decode.h>
 #include <SDL3/SDL.h>
 #include <algorithm>
+#include <atomic>
 #include <cmath>
+#include <cstdlib>
 #include <fstream>
+#include <memory>
+#include <optional>
+#include <thread>
 
 #ifdef _WIN32
 #ifndef NOMINMAX
@@ -92,6 +100,48 @@ static int DetectQualityPreset() {
     return 3;
 }
 
+// OPTIONS > Graphics > Render mode (tip_engine/RenderMode.h). The launcher font is
+// Latin-only, so the text stays in English.
+static constexpr const char* kRenderModeNames[2] = {
+    "Fast (Direct3D 12)",
+    "Accurate (Vulkan, exact Xbox 360 EDRAM)",
+};
+static constexpr const char* kRenderModeNote =
+    "Accurate emulates the Xbox 360 video memory exactly, as on the console, and needs a stronger GPU "
+    "(an RX 6600 runs about 31 FPS on the title screen, Fast 63-72). Changing the mode restarts the game once.";
+
+// Whether Accurate can work on this PC (VulkanFsiProbe.h). Started the first time
+// OPTIONS shows the render mode, so players who never open it don't load the Vulkan
+// driver; nullptr until the worker thread is done. The thread is detached: PLAY
+// never waits for a slow driver.
+namespace {
+struct FsiProbeSlot {
+    std::atomic<bool> done{false};
+    tip_render::VulkanFsiProbe probe;  // written by the probe thread before done
+};
+std::shared_ptr<FsiProbeSlot> g_fsiProbeSlot;
+std::optional<tip_render::VulkanFsiProbe> g_fsiProbe;
+
+const tip_render::VulkanFsiProbe* FsiProbe() {
+    if (!g_fsiProbeSlot) {
+        // An unregistered cvar reads as "": automatic device selection then.
+        const std::string device = rex::cvar::Query<std::string>("vulkan_device");
+        const int32_t deviceIndex = device.empty() ? -1 : std::atoi(device.c_str());
+        g_fsiProbeSlot = std::make_shared<FsiProbeSlot>();
+        std::thread([slot = g_fsiProbeSlot, deviceIndex] {
+            slot->probe = tip_render::ProbeVulkanFsi(deviceIndex);
+            slot->done.store(true, std::memory_order_release);
+        }).detach();
+    }
+    if (!g_fsiProbe && g_fsiProbeSlot->done.load(std::memory_order_acquire)) {
+        g_fsiProbe = g_fsiProbeSlot->probe;
+        static constexpr const char* kResultNames[] = {"unknown", "no Vulkan", "no interlock", "supported"};
+        REXLOG_INFO("launcher: Vulkan FSI probe: {} ({})", kResultNames[int(g_fsiProbe->result)], g_fsiProbe->device);
+    }
+    return g_fsiProbe ? &*g_fsiProbe : nullptr;
+}
+}  // namespace
+
 static constexpr float kPad = 24.0f;
 static constexpr float kBarHeight = 116.0f;
 static constexpr float kWallpaperVerticalShift = 160.0f;
@@ -100,7 +150,8 @@ static constexpr float kRowBottomPad = 22.0f;
 static constexpr float kCheckboxGap = 10.0f;
 
 bool LaunchMenuDialog::WillShowOnStartup() {
-    return REXCVAR_GET(ShowLaunchMenu);
+    // Not after a restart for another render mode: the player already pressed PLAY.
+    return REXCVAR_GET(ShowLaunchMenu) && !tip_render::SkipLauncherOnce();
 }
 
 void LaunchMenuDialog::ReleaseWallpaper() {
@@ -184,6 +235,14 @@ void LaunchMenuDialog::StartGame() {
     visible_ = false;
     optionsOpen_ = false;
     g_LaunchMenuOpen = false;
+    // Another render mode: the GPU API and the render target path were set up
+    // before the launcher appeared, so the game starts once more in the new mode
+    // (retip.toml is saved above) and this instance closes without starting it.
+    if (tip_render::CurrentSetting() != tip_render::Active() && tip_render::RestartSkippingLauncher()) {
+        onClosed_ = nullptr;
+        if (window_) window_->RequestClose();
+        return;
+    }
     if (onClosed_) {
         auto cb = std::move(onClosed_);
         onClosed_ = nullptr;
@@ -203,8 +262,8 @@ static bool BrandButton(const char* label, ImVec4 color, ImVec2 size) {
 void LaunchMenuDialog::OnDraw(ImGuiIO& io) {
     if (!initialized_) {
         initialized_ = true;
-        visible_ = REXCVAR_GET(ShowLaunchMenu);
-        showOnStartup = visible_;
+        showOnStartup = REXCVAR_GET(ShowLaunchMenu);
+        visible_ = WillShowOnStartup();
     }
 
     g_LaunchMenuOpen = visible_;
@@ -350,6 +409,33 @@ void LaunchMenuDialog::DrawOptionsWindow(ImGuiIO& io) {
         if (ImGui::Combo("##Quality", &qualityIndex_, kQualityNames, 4)) {
             ApplyQualityPreset(qualityIndex_);
         }
+
+        ImGui::Spacing();
+        ImGui::SeparatorText("Graphics");
+        ImGui::TextUnformatted("Render mode");
+        static constexpr float kModeWidth = 360.0f;
+        int mode = tip_render::CurrentSetting();
+        ImGui::SetNextItemWidth(kModeWidth);
+        if (ImGui::Combo("##RenderMode", &mode, kRenderModeNames, 2)) {
+            tip_render::Select(static_cast<tip_render::Mode>(mode));
+        }
+        ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + kModeWidth + 60.0f);
+        ImGui::TextDisabled("%s", kRenderModeNote);
+        const tip_render::VulkanFsiProbe* probe = FsiProbe();
+        if (mode == tip_render::kAccurate && probe) {
+            using Result = tip_render::VulkanFsiProbe::Result;
+            if (probe->result == Result::kNoVulkan) {
+                ImGui::TextColored(ImVec4(1.0f, 0.75f, 0.2f, 1.0f), "%s",
+                                   "No Vulkan on this PC: Accurate would run on Direct3D 12 without the exact "
+                                   "EDRAM. Choose Fast instead.");
+            } else if (probe->result == Result::kNoInterlock) {
+                ImGui::TextColored(ImVec4(1.0f, 0.75f, 0.2f, 1.0f),
+                                   "%s has no fragment shader interlock: Accurate would run on Vulkan without "
+                                   "the exact EDRAM. Choose Fast instead.",
+                                   probe->device.c_str());
+            }
+        }
+        ImGui::PopTextWrapPos();
 
         ImGui::Spacing();
         ImGui::SeparatorText("General");

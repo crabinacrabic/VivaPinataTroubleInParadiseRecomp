@@ -11,6 +11,10 @@ inline double cpuMS;
 inline double gpuMS;
 inline int flock;
 
+// The render mode as it actually runs (Fps.cpp, tip_engine/RenderMode.h); degraded:
+// Accurate was chosen but this PC runs another path.
+std::string RenderModeOverlayText(bool& degraded);
+
 class FPSCounter {
 public:
     std::string name;
@@ -88,6 +92,11 @@ public:
             ImGui::TextColored(ImVec4(1.0f, 0.45f, 0.85f, 1.0f), "%.0f FPS (generated)",
                                generatedFps);
         }
+
+        bool degraded = false;
+        const std::string mode = RenderModeOverlayText(degraded);
+        ImGui::TextColored(degraded ? ImVec4(1.0f, 0.75f, 0.2f, 1.0f) : ImVec4(0.75f, 0.78f, 0.76f, 1.0f), "%s",
+                           mode.c_str());
 
         ImGui::End();
     }

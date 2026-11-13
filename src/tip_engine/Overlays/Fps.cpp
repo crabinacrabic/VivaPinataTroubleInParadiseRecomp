@@ -1,7 +1,12 @@
 #include "Fps.h"
 #include <tip_engine/hooks.h>
+#include <tip_engine/RenderMode.h>
 #include <tip_engine/Timer.h>
 #include <rex/hook.h>
+
+std::string RenderModeOverlayText(bool& degraded) {
+    return tip_render::ActualText(degraded);
+}
 
 REX_EXTERN(__imp__rex_appMainTickPreDraw_821C91C0);
 REX_HOOK_RAW(rex_appMainTickPreDraw_821C91C0){

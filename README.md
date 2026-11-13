@@ -10,8 +10,8 @@
 
 [![Platform](https://img.shields.io/badge/platform-Windows%20x64-0078D6?logo=windows&logoColor=white)](#what-you-need)
 [![Title ID](https://img.shields.io/badge/Title%20ID-4D53085F-107C10?logo=xbox&logoColor=white)](#which-game-version-you-need)
-[![ReXGlue SDK](https://img.shields.io/badge/ReXGlue%20SDK-v0.10.0.8-8A2BE2)](https://github.com/rexglue/rexglue-sdk)
-[![Renderer](https://img.shields.io/badge/render-Direct3D%2012-blue)](#settings)
+[![ReXGlue SDK](https://img.shields.io/badge/ReXGlue%20SDK-RED%20Edition%20LAVA-8A2BE2)](https://github.com/crabinacrabic/rexglue-sdk-RED-Edition-LAVA)
+[![Renderer](https://img.shields.io/badge/render-Direct3D%2012%20%7C%20Vulkan-blue)](#render-modes)
 [![Status](https://img.shields.io/badge/status-playable-2ea44f)](#what-works)
 [![Languages](https://img.shields.io/badge/text-English%20%7C%20Русский-orange)](#russian-language)
 
@@ -32,7 +32,7 @@ It is [SolarCookies/TiP-Recomp](https://github.com/SolarCookies/TiP-Recomp) (ReT
 
 ## What you need
 
-- A Windows 10 or 11 PC (64-bit) with a DirectX 12 graphics card.
+- A Windows 10 or 11 PC (64-bit) with a DirectX 12 graphics card. The **Accurate** render mode also needs Vulkan with fragment shader interlock (tested on an AMD Radeon RX 6600).
 - About **25 GB** of free disk space (Visual Studio ~12 GB, the game ~5 GB, the disc image ~8 GB while unpacking).
 - Your own disc image (`.iso`) of **Viva Piñata: Trouble in Paradise** for Xbox 360.
 
@@ -79,7 +79,7 @@ Other editions have not been tested. *Viva Piñata* (2006) and *Viva Piñata: Pa
    - Click **Build → Build All** (`F7`).
 5. **Start it:** `Ctrl+F5` in Visual Studio, or double-click `out\build\local-win-relwithdebinfo\retip.exe`. The game starts in a window.
 6. **In the launcher** press **PLAY** (or `Enter`).
-   - **OPTIONS** has the aspect ratio (16:9 to 32:9 or custom), resolution (720p / 1440p), graphics quality, fullscreen, the FPS counter and limit, skipping the intro videos, and the game text language.
+   - **OPTIONS** has the aspect ratio (16:9 to 32:9 or custom), resolution (720p / 1440p), graphics quality, the [render mode](#render-modes), fullscreen, the FPS counter and limit, skipping the intro videos, and the game text language.
    - The button in the top-right corner switches between fullscreen and a window. Untick **Show this launcher on startup** to go straight into the game.
 
 ## Russian language
@@ -127,16 +127,28 @@ Most settings are in the launcher. Everything else is in `retip.toml` next to `r
 
 The mods from [`packaged/mods`](packaged/mods) are listed there too. With ReXGlue SDK 0.10 only data mods work (PureTagColors); the texture and shader mods (WaterFix, DitherFix, IceShader, BorderlessTag, CustomProfileTag) needed the GPU layer of the original SDK fork and are inactive for now.
 
+### Render modes
+
+**OPTIONS → Graphics → Render mode** in the launcher:
+
+| Mode | What it is | Title screen, RX 6600 |
+| :-- | :-- | --: |
+| **Fast** (default) | Direct3D 12 with the PC graphics card's own render targets | 63–72 FPS |
+| **Accurate** | Vulkan; the Xbox 360 video memory (EDRAM) is emulated exactly, as on the console | about 31 FPS |
+
+Accurate comes from **RED Edition LAVA**, our build of ReXGlue SDK ([crabinacrabic/rexglue-sdk-RED-Edition-LAVA](https://github.com/crabinacrabic/rexglue-sdk-RED-Edition-LAVA)), made for [Viva Piñata Recomp](https://github.com/crabinacrabic/VivaPinataRecomp): without its speedups the exact emulation runs at 5–8 FPS here. Switching the mode restarts the game once. If the PC can't run Accurate (no Vulkan, or no fragment shader interlock on the graphics card), the launcher says so in yellow; the FPS counter shows the mode that really runs.
+
 ## What works
 
 | | |
 | :-- | :-- |
 | ✅ | Title screen, menus and the garden |
 | ✅ | Sound, Xbox controller, mouse and keyboard |
-| ✅ | Launcher with display and quality options, ReTiP tools menu |
+| ✅ | Launcher with display, quality and render mode options, ReTiP tools menu |
 | ✅ | Russian text |
+| ✅ | Direct3D 12 (Fast) and Vulkan with the exact Xbox 360 EDRAM (Accurate) |
+| 🚧 | Accurate is new: tested on the title screen and in the attract mode, not yet in a long game |
 | 🚧 | Texture and shader mods are inactive (data mods work) |
-| 🚧 | Direct3D 12 only |
 | 🚧 | The Xbox Live Vision camera and online play are not supported |
 
 ## If something goes wrong
@@ -146,7 +158,8 @@ The mods from [`packaged/mods`](packaged/mods) are listed there too. With ReXGlu
 | The launcher says "Game files not found", **PLAY** is grey | Check that `assets\default.xex` and `assets\Beta` exist |
 | The game closes a few seconds after **PLAY** when built as `local-win-debug` | A bug in the SDK's debug runtime (its UI drawer uses an invalidated iterator when it frees a texture). Use `local-win-relwithdebinfo` |
 | Visual Studio stops at "Access violation" when started with `F5` | This is not a crash. Turn off breaking on `0xC0000005` (Debug → Windows → Exception Settings), or start with `Ctrl+F5` |
-| Build error `Microsoft Visual C/C++ Version differs in precompiled file` | Visual Studio was updated. Delete `out\build\local-win-relwithdebinfo` and build again |
+| Build error `Microsoft Visual C/C++ Version differs in precompiled file`, or `… has been modified since the precompiled header … was built` | Visual Studio or the Windows SDK was updated. Delete `out\build\local-win-relwithdebinfo` and build again |
+| The launcher shows a yellow warning under the Accurate mode, or the FPS counter shows the mode in yellow (`D3D12 (Vulkan unavailable)`, `Vulkan, FBO (no FSI support)`) | This PC can't run Accurate, and the game runs another path instead. Choose Fast; please report your graphics card in an issue |
 | Code generation fails with `0xC0000409` | The project path contains non-English characters. Move the project, for example to `C:\Games\VivaPinataTiPRecomp` |
 
 Logs are written to `out\build\local-win-relwithdebinfo\logs\`.
@@ -160,7 +173,7 @@ Logs are written to `out\build\local-win-relwithdebinfo\logs\`.
 ## Credits
 
 - [SolarCookies/TiP-Recomp](https://github.com/SolarCookies/TiP-Recomp): the original project (ReTiP)
-- [ReXGlue SDK](https://github.com/rexglue/rexglue-sdk): recompiler and runtime
+- [ReXGlue SDK](https://github.com/rexglue/rexglue-sdk): recompiler and runtime; our build of it, [RED Edition LAVA](https://github.com/crabinacrabic/rexglue-sdk-RED-Edition-LAVA), for the Accurate mode
 - [Xenia](https://github.com/xenia-project/xenia) and [Xenia Canary](https://github.com/xenia-canary/xenia-canary): graphics backend
 - ZoG Team ([Zone of Games](https://www.zoneofgames.ru/)): the Russian translation of the first game, the base for the names and many lines
 - Rare: for a wonderful game

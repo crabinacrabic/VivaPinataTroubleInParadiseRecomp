@@ -21,6 +21,7 @@
 #include <rex/filesystem.h>
 #include <rex/logging.h>
 #include <rex/system/gpu_plugin.h>
+#include "tip_engine/RenderMode.h"
 
 REXCVAR_DECLARE(std::string, graphics_backend);
 
@@ -48,16 +49,22 @@ class RetipApp : public rex::ReXApp {
     return std::unique_ptr<RetipApp>(new RetipApp(ctx, "retip", PPCImageConfig));
   }
 
-  // The GPU API (graphics_backend in retip.toml or --graphics_backend=): the
-  // plugin is loaded here with that backend, before the SDK picks one itself.
+  // The GPU API (graphics_backend in retip.toml or --graphics_backend=, set by the
+  // launcher's render mode): the plugin is loaded here with that backend, before
+  // the SDK picks one itself (Direct3D 12 on Windows).
   void OnPreSetup(rex::RuntimeConfig& config) override {
     const std::string backend = REXCVAR_GET(graphics_backend);
+    tip_render::ActiveBackend() = backend == "vulkan" ? "vulkan" : "d3d12";
     if (backend != "any" && !config.gpu_plugin.empty()) {
       config.graphics = rex::system::LoadGpuPlugin(config.gpu_plugin, backend);
       if (!config.graphics) {
         REXLOG_WARN("graphics_backend '{}' unavailable, falling back to automatic selection", backend);
+        tip_render::BackendFallback() = backend == "vulkan";
+        tip_render::ActiveBackend() = "d3d12";
       }
     }
+    // The plugin's cvars (render_target_path_vulkan) exist once it is loaded.
+    tip_render::Active() = tip_render::CurrentSetting();
   }
 
   void OnPostSetup() override {
