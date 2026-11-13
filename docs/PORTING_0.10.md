@@ -1,57 +1,57 @@
-# Перенос ReTiP на ReXGlue SDK 0.10
+# Porting ReTiP to ReXGlue SDK 0.10
 
-> Дата: 2026-09-26. База проекта: ReTiP (коммит `757f550`). Портирование на upstream ReXGlue SDK 0.10.
+> Date: 2026-09-26. Base: ReTiP (commit `757f550`). Port to upstream ReXGlue SDK 0.10.
 
-## 1. Что это за проект
+## 1. The project
 
-**ReTiP**: рекомпиляция *Viva Piñata: Trouble in Paradise* (Xbox 360, 2008) на ReXGlue.
-- В оригинале есть лаунчер, оверлеи TiPTools (спавн пинат, растения, игрок, хулиганы, лопата, графика, апскейл, настройки), курсор мыши и сырой ввод, FPS-оверлей, хуки камеры и рендера (соотношение сторон, frustum, letterbox), моды (текстуры, шейдеры HLSL, данные `.vdat`), Discord Rich Presence.
-- Объём: 56 файлов исходников, около 13 200 строк C++; 24 mid-asm хука; 46 именованных функций; 20 записей `[rexcrt]` (куча и файловый ввод-вывод).
+**ReTiP** is a recompilation of *Viva Piñata: Trouble in Paradise* (Xbox 360, 2008) on ReXGlue.
+- The original has a launcher, TiPTools overlays (spawning piñatas, plants, player, sours, shovel, graphics, upscaling, settings), a mouse cursor and raw input, an FPS overlay, camera and render hooks (aspect ratio, frustum, letterbox), mods (textures, HLSL shaders, `.vdat` data) and Discord Rich Presence.
+- Size: 56 source files, about 13,200 lines of C++; 24 mid-asm hooks; 46 named functions; 20 `[rexcrt]` entries (heap and file I/O).
 
-### Сборка оригинала
-- Собирался на форке SDK версии 0.8.1. CI клонировал и собирал SDK из исходников.
-- Сам код уже написан на API, близком к 0.10: `REX_HOOK`, `REX_EXTERN`, `REX_HOOK_RAW`, `rex::ppc::GuestToHostFunction`, `REX_DEFINE_APP`. Основная работа при переносе — функции форка, которых нет в upstream.
+### How the original was built
+- On a fork of SDK 0.8.1. CI cloned and built the SDK from source.
+- The code was already written against an API close to 0.10: `REX_HOOK`, `REX_EXTERN`, `REX_HOOK_RAW`, `rex::ppc::GuestToHostFunction`, `REX_DEFINE_APP`. The main porting work is the fork-only functions that upstream lacks.
 
-### Лицензия
-В оригинале **нет файла лицензии**. По умолчанию это значит «все права у автора». Выкладывать этот код в новый публичный репозиторий без разрешения автора нельзя, поэтому проект опубликован как форк [SolarCookies/TiP-Recomp](https://github.com/SolarCookies/TiP-Recomp) на GitHub (правила GitHub это разрешают) с сохранением всей истории коммитов автора.
+### License
+The original has **no license file**. By default that means "all rights reserved by the author". This code cannot be published in a new public repository without the author's permission, so the project is published as a GitHub fork of [SolarCookies/TiP-Recomp](https://github.com/SolarCookies/TiP-Recomp) (GitHub's terms allow that), keeping the author's whole commit history.
 
-## 2. Игра
+## 2. The game
 
 | | |
 | :-- | :-- |
-| Диск (Redump) | `Viva Pinata - Trouble in Paradise (World).iso`, MD5 `aad50e5418e22e8a9b92d2c0c258079e` (совпадает с Redump) |
+| Disc (Redump) | `Viva Pinata - Trouble in Paradise (World).iso`, MD5 `aad50e5418e22e8a9b92d2c0c258079e` (matches Redump) |
 | Title ID / Media ID | `4D53085F` / `76A44A5D` |
-| XEX | версия `0.0.0.4`, образ с `0x82000000`, точка входа `0x82B0AEA8`, SHA-1 `c5970941…6b8b` |
-| Где лежит | `assets/` (5,0 ГБ, распаковано) |
+| XEX | version `0.0.0.4`, image at `0x82000000`, entry point `0x82B0AEA8`, SHA-1 `c5970941…6b8b` |
+| Where | `assets/` (5.0 GB, unpacked) |
 
-## 3. Что сделано в этом коммите (первый проход)
+## 3. What this commit did (first pass)
 
-| Область | Изменение |
+| Area | Change |
 | :-- | :-- |
-| SDK | Prebuilt ReXGlue `0.10.0.8-dev.g1406e1b` в `rexglue/win-amd64`; `cmake/fetch-rexglue-sdk.cmake` скачивает его, если папки нет |
-| CMake | `CMakeLists.txt` в стиле 0.10: скачивание SDK, однократный codegen при первой настройке, без опций форка `REXGLUE_ENABLE_TEXTURES/SHADERS`. После сборки `packaged/` (retip.toml, моды, фон лаунчера) копируется к exe; существующий `retip.toml` не перезаписывается. `CMakePresets.json` и `generated/rexglue.cmake` взяты из шаблона 0.10, добавлен `CMakeUserPresets.json` (`local-win-relwithdebinfo`) |
-| Манифест | `sdk_version = "0.10.0"`; `config/retip_variables.toml` (`[globals]`, функция форка) больше не подключается; валидатор `tools/validate_manifest.py` проходит чисто |
-| Флаги кодогенерации | Все по умолчанию (`false`) для первого запуска; значения форка (`skip_lr`, `ctr_as_local` и др. = true) оставлены в комментариях. Границы функций с пометками «crash fix» сохранены |
-| Discord RPC | `tip_compat::discord_rpc` — заглушка (`src/tip_engine/Compat.h`) |
-| Моды | `tip_compat::GetEnabledModDirs` и настройки `mods_data_root`, `enabled_mods`, `default_mods` (`Compat.cpp`). Моды данных (`mods/<имя>/data/*.vdat`) работают через собственный хук `assetManOpen`. Моды текстур и шейдеров требуют GPU-слоя форка и пока неактивны |
-| SolarRenderer | Настройки `OverlaySolarRenderer`, `SolarRendererPreview`, `rgb_cursor` определены выключенными |
-| `retip_globals.h` | Убран (его генерировал форк); единственное место использования уже читает адрес напрямую |
-| Диалоги | В 0.10 `ImGuiDialog` регистрируется сам в конструкторе: 4 лишних `AddDialog` убраны, иначе всё рисовалось бы дважды |
-| Immediate drawer | В 0.10 у `ImGuiDrawer` нет доступа к нему: `g_immediate_drawer = immediate_drawer()` в `OnCreateDialogs`, используется лаунчером |
-| Пути | В 0.10 `game_data_root()` заполняется только в `ConstructRuntime`, после создания диалогов. Проверка «игра установлена» перенесена в `OnConfigurePaths`, иначе лаунчер считал, что игра не установлена. `assets/` ищется вверх от папки exe, а не от текущей папки |
+| SDK | Prebuilt ReXGlue `0.10.0.8-dev.g1406e1b` in `rexglue/win-amd64`; `cmake/fetch-rexglue-sdk.cmake` downloads it if the folder is missing |
+| CMake | `CMakeLists.txt` in the 0.10 style: SDK download, one codegen at the first configure, without the fork options `REXGLUE_ENABLE_TEXTURES/SHADERS`. After the build `packaged/` (retip.toml, mods, launcher wallpaper) is copied next to the exe; an existing `retip.toml` is not overwritten. `CMakePresets.json` and `generated/rexglue.cmake` come from the 0.10 template; `CMakeUserPresets.json` adds `local-win-relwithdebinfo` |
+| Manifest | `sdk_version = "0.10.0"`; `config/retip_variables.toml` (`[globals]`, a fork feature) is no longer included; `tools/validate_manifest.py` passes clean |
+| Codegen flags | All default (`false`) for the first run; the fork's values (`skip_lr`, `ctr_as_local` etc. = true) are kept in comments. Function boundaries marked "crash fix" are kept |
+| Discord RPC | `tip_compat::discord_rpc` is a stub (`src/tip_engine/Compat.h`) |
+| Mods | `tip_compat::GetEnabledModDirs` and the settings `mods_data_root`, `enabled_mods`, `default_mods` (`Compat.cpp`). Data mods (`mods/<name>/data/*.vdat`) work through the project's own `assetManOpen` hook. Texture and shader mods need the fork's GPU layer and are inactive for now |
+| SolarRenderer | Settings `OverlaySolarRenderer`, `SolarRendererPreview`, `rgb_cursor` are defined off |
+| `retip_globals.h` | Removed (the fork generated it); its only user already reads the address directly |
+| Dialogs | In 0.10 `ImGuiDialog` registers itself in its constructor: 4 extra `AddDialog` calls removed, otherwise everything was drawn twice |
+| Immediate drawer | In 0.10 `ImGuiDrawer` has no access to it: `g_immediate_drawer = immediate_drawer()` in `OnCreateDialogs`, used by the launcher |
+| Paths | In 0.10 `game_data_root()` is filled only in `ConstructRuntime`, after the dialogs are created. The "game installed" check moved to `OnConfigurePaths`, otherwise the launcher thought the game was missing. `assets/` is searched upward from the exe folder, not the current folder |
 
-## 4. Что проверить при первой сборке
+## 4. What to check at the first build
 
-1. **Компиляция.** Я не собирал проект (сборка только в Visual Studio). Возможны ошибки в местах, где API 0.10 отличается от форка. Их правим по логу сборки.
-2. **SDL3.** Лаунчер вызывает `SDL_OpenURL`. Если линковщик не найдёт SDL3, нужно добавить библиотеку явно.
-3. **Mid-asm хуки** (24 шт., `config/retip_midasm.toml`): все функции есть в `src/`, их сигнатуры должны совпасть с объявлениями, которые генерирует 0.10.
-4. **Известная ошибка SDK 0.10:** `vpkd3d128` FLOAT16 при записи в тот же регистр (in-place) теряет бит знака (Issue #457 в rexglue-sdk). При необходимости добавить mid-asm хук обхода кодогенератора для корректной упаковки координат сетки.
-5. **Распаковка CAFF на месте:** если будут модифицироваться `.bnl`/CAFF-файлы (например, перевод), поток должен быть ровно исходного размера (см. `compress_exact()` в `tools/tip_text.py`).
+1. **Compilation.** The port was not built at the time (Visual Studio only). Errors are possible where the 0.10 API differs from the fork; fix them from the build log.
+2. **SDL3.** The launcher calls `SDL_OpenURL`. If the linker does not find SDL3, add the library explicitly.
+3. **Mid-asm hooks** (24, `config/retip_midasm.toml`): all functions are in `src/`; their signatures must match the declarations 0.10 generates.
+4. **Known SDK 0.10 bug:** `vpkd3d128` FLOAT16 writing to the same register (in place) loses the sign bit (rexglue-sdk issue #457). Add a mid-asm workaround if needed for mesh coordinate packing. (Later checked: TiP has no in-place `vpkd3d128`, see `AGENTS.md`.)
+5. **CAFF inflated in place:** if `.bnl`/CAFF files are modified (a translation, for example), the stream must keep exactly its original size (see `compress_exact()` in `tools/tip_text.py`).
 
-## 5. Как запустить
+## 5. How to run
 
-1. Visual Studio → **Файл → Открыть → Папка…** → папка этого проекта.
-2. Дождаться конца генерации CMake. В первый раз запустится codegen по `assets/default.xex`, это несколько минут.
-3. Выбрать конфигурацию **`local-win-relwithdebinfo`**, нажать **F7**.
-4. Перед первым **F5**: Отладка → Параметры исключений → Win32 Exceptions → снять галку `0xC0000005` (это не падения, а защита памяти GPU в SDK).
-5. **F5** — откроется лаунчер ReTiP → PLAY.
+1. Visual Studio → **File → Open → Folder…** → this project's folder.
+2. Wait for CMake generation to finish. The first time it runs codegen on `assets/default.xex`, a few minutes.
+3. Choose the configuration **`local-win-relwithdebinfo`**, press **F7**.
+4. Before the first **F5**: Debug → Exception Settings → Win32 Exceptions → untick `0xC0000005` (not crashes: the SDK's GPU memory protection).
+5. **F5** opens the ReTiP launcher → PLAY.
