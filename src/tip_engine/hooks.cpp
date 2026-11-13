@@ -31,13 +31,73 @@
 // 0.10: the fork generated retip_globals.h from [globals] and had discord_rpc /
 // guest_global headers; see tip_engine/Compat.h.
 #include "tip_engine/Compat.h"
+#include <fmt/format.h>
+#include <rex/graphics/graphics_system.h>
+#include <rex/logging.h>
+#include <rex/runtime.h>
+#include <rex/ui/presenter.h>
 
 REXCVAR_DEFINE_BOOL(lock_fps, false, "TiP/Fps", "Lock to 30 FPS");
 REXCVAR_DEFINE_BOOL(show_fps, false, "TiP/Fps", "Show FPS Overlay");
+REXCVAR_DEFINE_INT32(tip_log_fps, 0, "TiP/Fps",
+                     "Log the game frame rate and the present pacing every N seconds (0 = off)");
 //REXCVAR_DEFINE_BOOL(DisableFur, false, "TiP/Graphics", "Disables Fur Rendering");
 REXCVAR_DEFINE_BOOL(DiscordActivity, true, "TiP/Discord", "Enable Discord Activity");
 REXCVAR_DEFINE_BOOL(ShowStartupOverlay, true, "TiP", "Show Startup Overlay");
 REXCVAR_DEFINE_BOOL(FramebufferClear, false, "TiP", "Disables the FramebufferClear logic");
+
+namespace {
+// --tip_log_fps=N: one log line per N seconds, so benchmarks need no screenshots.
+// The format is Viva Pinata's --vp_tools_log_ticks, so the lab scripts read both.
+// "present": Presenter::GetPresentStats of our SDK, how evenly the game frames
+// reach the screen (the last ~1 s).
+std::string PresentStatsText() {
+  rex::Runtime* runtime = rex::Runtime::instance();
+  auto* graphics = runtime ? static_cast<rex::graphics::GraphicsSystem*>(runtime->graphics_system()) : nullptr;
+  rex::ui::Presenter* presenter = graphics ? graphics->presenter() : nullptr;
+  if (!presenter) {
+    return "present: no data";
+  }
+  const rex::ui::Presenter::PresentStats p = presenter->GetPresentStats();
+  if (p.window_seconds <= 0.0 || p.guest_frames < 2) {
+    return "present: no data";
+  }
+  return fmt::format("present {:.1f}/s, {:.1f} ± {:.1f} ms ({:.0f}-{:.0f}), all {:.0f}/s",
+                     p.guest_frames / p.window_seconds, p.guest_interval_avg_ms, p.guest_interval_stddev_ms,
+                     p.guest_interval_min_ms, p.guest_interval_max_ms, p.presents / p.window_seconds);
+}
+
+void LogFrameRate() {
+  const int32_t seconds = REXCVAR_GET(tip_log_fps);
+  if (seconds <= 0) {
+    return;
+  }
+  static std::chrono::steady_clock::time_point last, since;
+  static uint32_t frames = 0, slow = 0;
+  static float worst_ms = 0.0f;
+  const auto now = std::chrono::steady_clock::now();
+  if (last != std::chrono::steady_clock::time_point{}) {
+    const float ms = std::chrono::duration<float, std::milli>(now - last).count();
+    ++frames;
+    slow += ms > 50.0f;
+    worst_ms = std::max(worst_ms, ms);
+  }
+  last = now;
+  if (since == std::chrono::steady_clock::time_point{}) {
+    since = now;
+    return;
+  }
+  const double window = std::chrono::duration<double>(now - since).count();
+  if (window < seconds) {
+    return;
+  }
+  REXLOG_INFO("[tip] ticks: {:.1f}/s over {:.1f} s, slow (>50 ms) {}/{}, worst {:.0f} ms; {}", frames / window,
+              window, slow, frames, worst_ms, PresentStatsText());
+  since = now;
+  frames = slow = 0;
+  worst_ms = 0.0f;
+}
+}  // namespace
 
 static auto lastFrameTime = std::chrono::high_resolution_clock::now();
 void CPU_fps_hook() {
@@ -47,6 +107,7 @@ void CPU_fps_hook() {
   int* Clear = reinterpret_cast<int*>(0x100000000ull + 0x83D26F68);
   *Clear = 1;
   fpshook->Tick();
+  LogFrameRate();
 }
 
 void GPU_fps_hook() {

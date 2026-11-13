@@ -30,6 +30,11 @@ REXCVAR_DEFINE_BOOL(DisableUIDraw, false, "TiP/Graphics", "Disables the UI Draw 
 REXCVAR_DEFINE_BOOL(UseAspectRatioFromConfig, false, "TiP/Graphics", "Use Aspect Ratio from config");
 REXCVAR_DEFINE_DOUBLE(AspectRatio, 1.7777778f, "TiP/Graphics", "Aspect Ratio");
 REXCVAR_DEFINE_BOOL(SkipIntros, false, "TiP/Graphics", "Skip Intro Videos");
+// Read by RetipApp::OnPreSetup, which loads the GPU plugin with this API. "any"
+// lets the SDK choose (Direct3D 12 on Windows). Vulkan with the exact EDRAM
+// (render_target_path_vulkan = "fsi") needs our SDK build (RED Edition LAVA).
+REXCVAR_DEFINE_STRING(graphics_backend, "any", "GPU", "Graphics API backend: any, d3d12, vulkan")
+    .allowed({"any", "d3d12", "vulkan"});
 
 REX_PPC_EXTERN_IMPORT(supportFrustumConstructClippingFrustum_8228BE08);
 void supportFrustumConstructClippingFrustum_8228BE08_Hook(double a1,double a2,double a3,double a4,int a5,int a6,int a7,int a8,float *a9,float *a10) {

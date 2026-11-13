@@ -23,6 +23,10 @@ public:
 
     void OnDraw(ImGuiIO& io) override;
 
+    // The launcher shows before the game draws anything: repaint continuously
+    // while it is (or may be) on screen, not afterwards.
+    bool NeedsContinuousRepaint() const override { return !initialized_ || visible_; }
+
 private:
     void EnsureWallpaper();
     void DrawOptionsWindow(ImGuiIO& io);

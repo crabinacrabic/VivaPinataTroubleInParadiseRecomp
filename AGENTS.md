@@ -58,7 +58,7 @@ Test-Path C:\Games\VivaPinataTiPRecomp\assets\Beta\bundles\englishus.bnl   # exp
 
 ### 1.5 Build
 
-On the first configure, CMake downloads ReXGlue SDK `0.10.0.8-dev.g1406e1b` into `rexglue\win-amd64\` ([`cmake/fetch-rexglue-sdk.cmake`](cmake/fetch-rexglue-sdk.cmake)). Then it runs `rexglue codegen retip_manifest.toml` once, which writes `generated\default\` (163 C++ files). Expect 10–40 minutes in total.
+On the first configure, CMake downloads ReXGlue SDK `0.10.0.30-dev.g8fdf638` into `rexglue\win-amd64\` ([`cmake/fetch-rexglue-sdk.cmake`](cmake/fetch-rexglue-sdk.cmake)): the GitHub release `red-edition-lava-20261102-8fdf638` of the fork [crabinacrabic/rexglue-sdk-RED-Edition-LAVA](https://github.com/crabinacrabic/rexglue-sdk-RED-Edition-LAVA), upstream ReXGlue plus Vulkan with the exact Xbox 360 EDRAM at full speed (the same SDK as Viva Piñata 1). If `rexglue\win-amd64\` holds another version, it is moved to `rexglue\win-amd64.old-<version>-<time>\` and the pinned one is downloaded; the old folder can be deleted. Then it runs `rexglue codegen retip_manifest.toml` once, which writes `generated\default\` (163 C++ files). Expect 10–40 minutes in total.
 
 **A. Visual Studio (tested; ask the user to do this):**
 1. Open Visual Studio 2026 → **File → Open → Folder…** → `C:\Games\VivaPinataTiPRecomp`.
@@ -99,7 +99,9 @@ The launcher font is Latin-only, so its labels are English.
 Command-line flags:
 - `--ShowLaunchMenu=false` starts the game directly;
 - `--tip_language=ru|en` sets the game text language;
-- `--fullscreen=true|false`.
+- `--fullscreen=true|false`;
+- `--graphics_backend=any|d3d12|vulkan` picks the GPU API (`any` = Direct3D 12 on Windows). The exact Xbox 360 EDRAM (as Viva Piñata 1's "Accurate" mode): `--graphics_backend=vulkan --render_target_path_vulkan=fsi --readback_resolve=lazy --edram_interlock_optimizations=true` (needs Vulkan with fragment shader interlock; tested only on an AMD RX 6600). The same keys work in `retip.toml`;
+- `--tip_log_fps=5` logs the frame rate and the present pacing every 5 s (`[tip] ticks: …`, the format of Viva Piñata's `--vp_tools_log_ticks`).
 
 In game: hold **Back** on the controller for 0.5 s for the ReTiP tools menu; `Shift+Esc` or `End` asks to quit.
 
@@ -187,4 +189,7 @@ assets/  rexglue/  generated/  out/     not in git (except assets/README.md, gen
 - **Text bundles are Rare CAFF files inflated in place.** The text stream must keep exactly its compressed size (stream 0 records it), and every LBSL block keeps its size, so a block's strings share its space. See `compress_exact()` and `relayout()` in `tools\tip_text.py`. The font cache already has Cyrillic.
 - Unlike Viva Piñata 1, TiP has no in-place `vpkd3d128` (all its `vpkd3d128` have `vD != vB`), so the codegen sign-loss workaround is not needed.
 - `Flag 'mnk_sensitivity': value 0 below min (0.01)` in the log is expected: the mouse drives the camera through `CursorHooks`, not the SDK's mouse-to-stick path.
-- Testing without the launcher: `retip.exe --ShowLaunchMenu=false --tip_language=en`. Guest crashes show `Unhandled guest access violation` in the log; host crashes appear in the Windows Application event log, and in `%LOCALAPPDATA%\CrashDumps` when Windows Error Reporting local dumps are enabled.
+- **GPU API and the exact EDRAM.** `graphics_backend` is this project's cvar: `RetipApp::OnPreSetup` loads the GPU plugin with it (`rex::system::LoadGpuPlugin`), otherwise the SDK picks Direct3D 12. Measured 2026-11-14 on an RX 6600, 1280×720 window, title screen ("Press START", the heaviest scene of the no-input attract loop), `--tip_log_fps=5`: Direct3D 12 RTV + `readback_resolve = "fast"` ~52–55 FPS; Vulkan FSI + lazy readback + `edram_interlock_optimizations` (the exact EDRAM of our SDK) ~31 FPS at 96 % GPU, frames 31.8 ± 0.3 ms apart; the exact paths without our SDK's speedups: Vulkan FSI + full readback 5.6 FPS, Direct3D 12 ROV + full readback 7.6 FPS. No errors in any mode. The first Vulkan FSI run compiles its pipelines (stalls of up to 6.6 s in the first seconds); later runs load them from `<user data>\cache\shaders\shareable\4D53085F.fsi.vk.xpso`. Not checked yet: a per-pixel A/B in TiP, saving and loading, long play.
+- **Dialogs that stay alive must return false from `NeedsContinuousRepaint()`** unless they need input at the display rate (the FPS overlay always; the launcher, the quit prompt and the tools menu only while open). Before this, the always-on FPS overlay made the host present 180–290 times per second: on Vulkan only ~20 of 31 game frames per second reached the screen (43 ± 42 ms apart). Keys read in `OnDraw` (`QuitMenu.cpp`) use `GetAsyncKeyState(…) & 0x8001`, so a tap shorter than a frame still counts.
+- Benchmarks: `C:\Recompiles\Knowlage_BASE\rov_amd_scripts\tip_bench.ps1` (maintainer's PC) runs one mode without input and prints the frame rate per 5 s, present pacing and GPU load. The no-input loop (title screen, intro movie, demo garden) does not repeat at the same times, so compare runs by scene (screenshots: `-ShotAt`), not by time.
+- Testing without the launcher: `retip.exe --ShowLaunchMenu=false --tip_language=en` (careful: `--tip_language` installs or restores `englishus.bnl` in `assets\`, so pass the language the user has chosen). Guest crashes show `Unhandled guest access violation` in the log; host crashes appear in the Windows Application event log, and in `%LOCALAPPDATA%\CrashDumps` when Windows Error Reporting local dumps are enabled.

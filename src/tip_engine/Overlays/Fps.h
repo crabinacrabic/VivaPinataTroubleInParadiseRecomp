@@ -45,6 +45,12 @@ public:
 
     FPSManager* fpsManager = nullptr;
 
+    // Always alive, and redrawn with every game frame anyway: asking for
+    // continuous repaint would make the host present at the display rate
+    // (100+ times per second), which with vsync on a busy GPU makes the game
+    // frames uneven (seen on Vulkan in Viva Pinata).
+    bool NeedsContinuousRepaint() const override { return false; }
+
     void OnDraw(ImGuiIO& io) override {
 
         //Limit draw to every 10 frames

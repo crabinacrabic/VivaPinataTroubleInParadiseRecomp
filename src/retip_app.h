@@ -19,6 +19,10 @@
 #include "tip_engine/Compat.h"  // 0.10: discord_rpc stand-in
 #include "tip_engine/Language.h"
 #include <rex/filesystem.h>
+#include <rex/logging.h>
+#include <rex/system/gpu_plugin.h>
+
+REXCVAR_DECLARE(std::string, graphics_backend);
 
 #include "tip_engine/hooks.h"
 #include "tip_engine/Overlays/Fps.h"
@@ -42,6 +46,18 @@ class RetipApp : public rex::ReXApp {
   static std::unique_ptr<rex::ui::WindowedApp> Create(
       rex::ui::WindowedAppContext& ctx) {
     return std::unique_ptr<RetipApp>(new RetipApp(ctx, "retip", PPCImageConfig));
+  }
+
+  // The GPU API (graphics_backend in retip.toml or --graphics_backend=): the
+  // plugin is loaded here with that backend, before the SDK picks one itself.
+  void OnPreSetup(rex::RuntimeConfig& config) override {
+    const std::string backend = REXCVAR_GET(graphics_backend);
+    if (backend != "any" && !config.gpu_plugin.empty()) {
+      config.graphics = rex::system::LoadGpuPlugin(config.gpu_plugin, backend);
+      if (!config.graphics) {
+        REXLOG_WARN("graphics_backend '{}' unavailable, falling back to automatic selection", backend);
+      }
+    }
   }
 
   void OnPostSetup() override {

@@ -17,6 +17,10 @@ public:
 
     void OnDraw(ImGuiIO& io) override;
 
+    // Continuous repaint only while the prompt is up; otherwise the keys are
+    // checked once per game frame (see KeyPressedEdge).
+    bool NeedsContinuousRepaint() const override { return showConfirm_; }
+
 private:
     void DrawConfirm(ImGuiIO& io);
 

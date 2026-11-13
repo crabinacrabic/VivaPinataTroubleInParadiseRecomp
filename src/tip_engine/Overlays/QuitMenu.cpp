@@ -10,9 +10,12 @@
 #endif
 #include <Windows.h>
 
+// Bit 0x0001 = pressed since the last call: a tap shorter than one game frame
+// still counts (the dialog is drawn once per game frame, not continuously).
 static bool KeyPressedEdge(int vk, bool& wasDown) {
-    bool down = (GetAsyncKeyState(vk) & 0x8000) != 0;
-    bool pressed = down && !wasDown;
+    const SHORT state = GetAsyncKeyState(vk);
+    bool down = (state & 0x8000) != 0;
+    bool pressed = (down && !wasDown) || (state & 0x0001) != 0;
     wasDown = down;
     return pressed;
 }

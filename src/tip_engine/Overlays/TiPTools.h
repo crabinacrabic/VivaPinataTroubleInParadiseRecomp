@@ -67,6 +67,10 @@ public:
 
     void OnDraw(ImGuiIO& io) override;
 
+    // Continuous repaint only while the menu is open; closed, it is checked
+    // with every game frame (hold Back to open).
+    bool NeedsContinuousRepaint() const override { return visible_; }
+
     std::vector<std::unique_ptr<TipToolsPage>> pages;
     int selectedPage = -1;
     int highlightedIndex = 0;
