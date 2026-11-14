@@ -123,11 +123,11 @@ class RetipApp : public rex::ReXApp {
 
     // gameInstalled_ is set in OnConfigurePaths: in SDK 0.10 game_data_root()
     // is only filled in ConstructRuntime, after the dialogs are created.
-    launch_dialog_ = std::make_unique<LaunchMenuDialog>(drawer, window(), "retip.toml", gameInstalled_, gameRoot_);
+    launch_dialog_ = std::make_unique<LaunchMenuDialog>(drawer, window(), configPath_, gameInstalled_, gameRoot_);
 
     quit_dialog_ = std::make_unique<QuitMenuDialog>(drawer, window());
 
-    tools_dialog_ = std::make_unique<TipToolsDialog>(drawer, "retip.toml");
+    tools_dialog_ = std::make_unique<TipToolsDialog>(drawer, configPath_);
     tools_dialog_->pages.push_back(std::make_unique<SpawnMenuPage>());
     tools_dialog_->pages.push_back(std::make_unique<PlayerMenuPage>());
     tools_dialog_->pages.push_back(std::make_unique<PinataMenuPage>());
@@ -193,11 +193,18 @@ class RetipApp : public rex::ReXApp {
     gameInstalled_ = !paths.game_data_root.empty() &&
                      std::filesystem::exists(paths.game_data_root / "default.xex");
     gameRoot_ = gameInstalled_ ? paths.game_data_root : std::filesystem::path();
+    // The file the SDK loads (<exe folder>\retip.toml). The dialogs save there,
+    // not to a path relative to the working directory: started from another
+    // folder, the launcher's choices (and the render mode restart) were lost.
+    if (!paths.config_path.empty()) {
+      configPath_ = paths.config_path;
+    }
   }
 
  private:
   bool gameInstalled_ = true;
   std::filesystem::path gameRoot_;
+  std::filesystem::path configPath_ = "retip.toml";
   std::unique_ptr<FpsOverlayDialog> fps_dialog_;
   std::unique_ptr<LaunchMenuDialog> launch_dialog_;
   std::unique_ptr<QuitMenuDialog> quit_dialog_;
