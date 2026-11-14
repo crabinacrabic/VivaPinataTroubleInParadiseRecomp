@@ -49,3 +49,11 @@ large_function_threshold = 1048576
 0x82a80808 = {} #Multiplayer 3
 0x82a92128 = {} #Multiplayer 4
 0x822a7fa0 = {} #Multiplayer 5
+# The next five come from SolarCookies/TiP-Recomp branch dev (9cd0af2, after 1.11.2):
+# code reached only through function pointers, which codegen did not find, so the
+# game crashed when it called them. Each starts right where the previous function ends.
+0x823522d8 = {} #Multiplayer 6
+0x82333618 = {} #Multiplayer 7
+0x822a8680 = {} #Multiplayer 8
+0x82A920E0 = {} #Mailing someone a gift crash fix
+0x823CAAE0 = {} #Hitting a ruffian crash fix
